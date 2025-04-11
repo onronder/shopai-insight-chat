@@ -46,6 +46,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingState } from "@/components/common/LoadingState";
+import { useStoreData } from "@/hooks/useStoreData";
 
 const SettingsPage: React.FC = () => {
   const { toast } = useToast();
@@ -53,18 +56,23 @@ const SettingsPage: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [responseLength, setResponseLength] = useState([50]);
-  const [pageLoading, setPageLoading] = useState(false);
+  
+  // Use the store data hook to fetch settings
+  const { data: settings, isLoading: pageLoading, error } = useStoreData({
+    timeRange: "30",
+    allowStaffAccess: true,
+    responseTone: "neutral",
+    storeGoal: "Increase repeat customer revenue by 15%",
+    syncInterval: "daily",
+    optOutAnalytics: false,
+  }, 1500);
+  
+  // Check if settings object is empty (indicating no saved preferences)
+  const hasNoSettings = !pageLoading && settings && Object.keys(settings).length === 0;
   
   // TODO: Replace with API call to fetch user settings from backend
   const { handleSubmit, formState } = useForm({
-    defaultValues: {
-      timeRange: "30",
-      allowStaffAccess: true,
-      responseTone: "neutral",
-      storeGoal: "Increase repeat customer revenue by 15%",
-      syncInterval: "daily",
-      optOutAnalytics: false,
-    }
+    defaultValues: settings
   });
 
   const onSubmit = () => {
@@ -103,12 +111,13 @@ const SettingsPage: React.FC = () => {
   if (pageLoading) {
     return (
       <AppLayout>
+        <PageHeader 
+          title="Settings" 
+          description="Manage your store preferences and application settings"
+        />
         <div className="container max-w-4xl pb-20">
-          <div className="space-y-2 pb-6">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-64" />
-          </div>
-          <div className="space-y-6">
+          <LoadingState message="Loading your preferences..." />
+          <div className="space-y-6 mt-6">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
@@ -118,17 +127,72 @@ const SettingsPage: React.FC = () => {
     );
   }
 
+  if (hasNoSettings) {
+    return (
+      <AppLayout>
+        <PageHeader 
+          title="Settings" 
+          description="Manage your store preferences and application settings"
+        />
+        <div className="container max-w-4xl pb-20">
+          <EmptyState
+            title="No Settings Found"
+            description="We couldn't find any saved preferences for your store. Start customizing your experience by using the default settings below."
+            actionLabel="Initialize Settings"
+            onAction={() => window.location.reload()}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <PageHeader 
+          title="Settings" 
+          description="Manage your store preferences and application settings"
+        />
+        <div className="container max-w-4xl pb-20">
+          <EmptyState
+            title="Error Loading Settings"
+            description="We encountered an error while loading your settings. Please try again later."
+            actionLabel="Try Again"
+            onAction={() => window.location.reload()}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="container max-w-4xl pb-20">
-        <div className="space-y-2 pb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your store preferences and application settings
-          </p>
-        </div>
+        <PageHeader 
+          title="Settings" 
+          description="Manage your store preferences and application settings"
+          actions={
+            <Button 
+              type="submit" 
+              form="settings-form"
+              disabled={isLoading || !formState.isDirty}
+            >
+              {isLoading ? (
+                <>
+                  <RotateCw className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          }
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form id="settings-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Section 1: App Preferences */}
           <Card>
             <CardHeader>
@@ -140,6 +204,7 @@ const SettingsPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Interface Theme</Label>
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <div>
                   <ModeToggle />
                 </div>
@@ -147,6 +212,7 @@ const SettingsPage: React.FC = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="timeRange">Default Chart Time Range</Label>
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <Select defaultValue="30">
                   <SelectTrigger id="timeRange">
                     <SelectValue placeholder="Select time range" />
@@ -160,6 +226,7 @@ const SettingsPage: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2">
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <Checkbox id="allowStaffAccess" defaultChecked={true} />
                 <Label htmlFor="allowStaffAccess">
                   Allow staff users to access AI Assistant
@@ -179,6 +246,7 @@ const SettingsPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="responseTone">Response Tone</Label>
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <Select defaultValue="neutral">
                   <SelectTrigger id="responseTone">
                     <SelectValue placeholder="Select tone" />
@@ -193,6 +261,7 @@ const SettingsPage: React.FC = () => {
 
               <div className="space-y-3">
                 <Label>Response Length</Label>
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <div className="space-y-1">
                   <Slider 
                     value={responseLength} 
@@ -210,6 +279,7 @@ const SettingsPage: React.FC = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="storeGoal">Default Store Goal</Label>
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <Input 
                   id="storeGoal" 
                   defaultValue="Increase repeat customer revenue by 15%" 
@@ -233,6 +303,7 @@ const SettingsPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="syncInterval">Auto-sync Interval</Label>
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <Select defaultValue="daily">
                   <SelectTrigger id="syncInterval">
                     <SelectValue placeholder="Select interval" />
@@ -313,6 +384,7 @@ const SettingsPage: React.FC = () => {
               </Dialog>
 
               <div className="flex items-center space-x-2">
+                {/* TODO: Connect this setting to the Supabase backend via a preferences API. */}
                 <Switch id="optOutAnalytics" />
                 <Label htmlFor="optOutAnalytics">
                   Opt out of usage analytics
@@ -356,28 +428,6 @@ const SettingsPage: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-
-          {/* Save Button */}
-          <div className="fixed bottom-0 left-0 right-0 z-10 border-t bg-background p-4 md:px-6">
-            <div className="container flex max-w-4xl justify-end">
-              <Button 
-                type="submit" 
-                disabled={isLoading || !formState.isDirty}
-              >
-                {isLoading ? (
-                  <>
-                    <RotateCw className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
         </form>
       </div>
     </AppLayout>
