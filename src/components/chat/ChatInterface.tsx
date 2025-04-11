@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatContainer } from "./ChatContainer";
@@ -97,14 +98,24 @@ export const ChatInterface: React.FC = () => {
     }, 2000);
   };
 
+  // Handle suggestion clicks
+  const handleSuggestionClick = (suggestion: string) => {
+    handleSendMessage(suggestion);
+  };
+
   // TODO: Implement message deletion functionality via API
   // TODO: Implement message editing functionality via API
   // TODO: Implement conversation export functionality
   
   return (
-    <ChatContainer ref={containerRef} onScroll={handleScroll}>
+    <div ref={containerRef} onScroll={handleScroll} className="flex flex-col h-full overflow-y-auto p-4 space-y-4">
       {messages.map((message) => (
-        <ChatMessage key={message.id} message={message} />
+        <ChatMessage 
+          key={message.id} 
+          type={message.type === "user" ? "user" : "ai"} 
+          message={message.content}
+          timestamp={message.timestamp} 
+        />
       ))}
       <div ref={messagesEndRef} />
       {showScrollButton && (
@@ -117,8 +128,8 @@ export const ChatInterface: React.FC = () => {
           <ChevronDown className="h-4 w-4" />
         </Button>
       )}
-      <ChatSuggestions />
+      <ChatSuggestions onSuggestionClick={handleSuggestionClick} />
       <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
-    </ChatContainer>
+    </div>
   );
 };

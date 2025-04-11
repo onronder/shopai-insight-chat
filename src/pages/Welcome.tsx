@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,16 @@ type SyncStatusType = {
   products: "pending" | "syncing" | "completed";
   customers: "pending" | "syncing" | "completed";
 };
+
+// Sample questions for AI assistant
+const sampleQuestions = [
+  "What were my top-selling products last month?",
+  "How did my conversion rate change after the last promotion?",
+  "Which customer segment has the highest lifetime value?",
+  "What's my average order value compared to last quarter?",
+  "Identify products with high return rates",
+  "Which marketing channel brings the most revenue?"
+];
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
