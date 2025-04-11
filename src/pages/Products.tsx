@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AreaChart, Area, LineChart, Line, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
@@ -191,16 +191,17 @@ const ProductsPage: React.FC = () => {
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tickFormatter={(value) => `${value}%`} />
                   <Tooltip formatter={(value) => [`${value}%`, "Return Rate"]} />
-                  <Bar 
-                    dataKey="rate" 
-                    fill="#8884d8"
-                    // Color bars based on return rate
-                    fill={(entry) => {
-                      if (entry.rate > 10) return "#EF4444";
-                      if (entry.rate > 5) return "#F59E0B";
-                      return "#10B981";
-                    }}
-                  />
+                  <Bar dataKey="rate">
+                    {returnRateData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={
+                          entry.rate > 10 ? "#EF4444" :
+                          entry.rate > 5 ? "#F59E0B" : "#10B981"
+                        }
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

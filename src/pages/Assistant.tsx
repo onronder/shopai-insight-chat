@@ -131,7 +131,7 @@ const AssistantPage: React.FC = () => {
         <div className="bg-muted/30 p-4 rounded-lg border">
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
-              {message.chartType === "line" && (
+              {message.chartType === "line" ? (
                 <LineChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
@@ -139,8 +139,7 @@ const AssistantPage: React.FC = () => {
                   <Tooltip />
                   <Line type="monotone" dataKey="sales" stroke="#8884d8" strokeWidth={2} />
                 </LineChart>
-              )}
-              {message.chartType === "bar" && (
+              ) : message.chartType === "bar" ? (
                 <BarChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
@@ -148,8 +147,7 @@ const AssistantPage: React.FC = () => {
                   <Tooltip />
                   <Bar dataKey="sales" fill="#8884d8" />
                 </BarChart>
-              )}
-              {message.chartType === "area" && (
+              ) : message.chartType === "area" ? (
                 <AreaChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
@@ -157,8 +155,7 @@ const AssistantPage: React.FC = () => {
                   <Tooltip />
                   <Area type="monotone" dataKey="sales" stroke="#8884d8" fill="#8884d8" />
                 </AreaChart>
-              )}
-              {message.chartType === "pie" && (
+              ) : (
                 <PieChart>
                   <Pie
                     data={salesData}

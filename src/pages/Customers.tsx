@@ -89,7 +89,13 @@ const recentSignups = [
 ];
 
 // Churn forecast data
-const churnData = [
+interface ChurnDataPoint {
+  month: string;
+  rate: number;
+  projected?: boolean;
+}
+
+const churnData: ChurnDataPoint[] = [
   { month: "Jan", rate: 2.1 },
   { month: "Feb", rate: 2.3 },
   { month: "Mar", rate: 2.2 },
@@ -260,7 +266,7 @@ const CustomersPage: React.FC = () => {
                     dataKey="rate" 
                     stroke="#8884d8" 
                     strokeWidth={2}
-                    strokeDasharray={(data) => data.projected ? "5 5" : "0"} 
+                    strokeDasharray={(dataPoint: ChurnDataPoint) => dataPoint.projected ? "5 5" : "0"} 
                   />
                 </LineChart>
               </ResponsiveContainer>

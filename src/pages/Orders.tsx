@@ -203,7 +203,12 @@ const OrdersPage: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis domain={[60, 90]} tickFormatter={(value) => `$${value}`} />
-                  <Tooltip formatter={(value) => [`$${value.toFixed(2)}`, "AOV"]} />
+                  <Tooltip formatter={(value) => {
+                    if (typeof value === 'number') {
+                      return [`$${value.toFixed(2)}`, "AOV"];
+                    }
+                    return [`$${value}`, "AOV"];
+                  }} />
                   <Line 
                     type="monotone" 
                     dataKey="value" 
