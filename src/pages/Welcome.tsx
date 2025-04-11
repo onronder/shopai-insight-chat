@@ -7,19 +7,19 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Loader, Check, ArrowRight, Store } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { storeContext } from "@/hooks/useStoreData";
+import { SYNC_STATUS, ROUTES } from "@/utils/constants";
 
-// Mock store context - would come from your auth/store provider
-const storeContext = {
-  shopDomain: "mydemostore.myshopify.com",
+// Sync status type definition
+type SyncStatusType = {
+  orders: "pending" | "syncing" | "completed";
+  products: "pending" | "syncing" | "completed";
+  customers: "pending" | "syncing" | "completed";
 };
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
-  const [syncStatus, setSyncStatus] = useState<{
-    orders: "pending" | "syncing" | "completed";
-    products: "pending" | "syncing" | "completed";
-    customers: "pending" | "syncing" | "completed";
-  }>({
+  const [syncStatus, setSyncStatus] = useState<SyncStatusType>({
     orders: "syncing",
     products: "pending",
     customers: "pending",
@@ -29,6 +29,7 @@ const Welcome: React.FC = () => {
   const [syncComplete, setSyncComplete] = useState(false);
   
   // Simulate sync progress
+  // TODO: Replace with real API integration
   useEffect(() => {
     const timer = setTimeout(() => {
       if (syncProgress >= 100) {
@@ -52,11 +53,11 @@ const Welcome: React.FC = () => {
   }, [syncProgress]);
   
   const goToDashboard = () => {
-    navigate("/");
+    navigate(ROUTES.DASHBOARD);
   };
   
   const skipAndExplore = () => {
-    navigate("/");
+    navigate(ROUTES.DASHBOARD);
   };
   
   const sampleQuestions = [
@@ -77,11 +78,14 @@ const Welcome: React.FC = () => {
     }
   };
 
+  // Extract store name from domain
+  const storeName = storeContext.shopDomain.split('.')[0];
+
   return (
     <div className="container mx-auto py-8 space-y-8 max-w-4xl">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          Welcome to ShopAI Insight, <span className="text-primary">{storeContext.shopDomain.split('.')[0]}</span> 👋
+          Welcome to ShopAI Insight, <span className="text-primary">{storeName}</span> 👋
         </h1>
         <p className="text-muted-foreground text-lg">
           We're syncing your Shopify store data to personalize your experience.

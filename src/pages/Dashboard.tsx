@@ -1,12 +1,16 @@
 
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Users, ShoppingCart, DollarSign, Clock } from "lucide-react";
+import { useStoreData } from "@/hooks/useStoreData";
+import { ChartWrapper } from "@/components/charts/ChartWrapper";
+import { LoadingState } from "@/components/common/LoadingState";
+import { CHART_COLORS } from "@/utils/constants";
+import { formatCurrency } from "@/utils/formatters";
 
-// Mock data for stats
-const stats = [
+// Mock data for stats - TODO: Replace with real API data
+const statsData = [
   {
     title: "Total Revenue",
     value: "$45,231.89",
@@ -37,7 +41,7 @@ const stats = [
   },
 ];
 
-// Mock data for sales over time
+// Mock data for sales over time - TODO: Replace with real API data
 const salesData = [
   { name: "Jan", sales: 4000, target: 4400 },
   { name: "Feb", sales: 3000, target: 3800 },
@@ -47,7 +51,7 @@ const salesData = [
   { name: "Jun", sales: 9500, target: 6000 },
 ];
 
-// Mock data for top products
+// Mock data for top products - TODO: Replace with real API data
 const topProductsData = [
   { name: "Organic Cotton T-Shirt", value: 21 },
   { name: "Premium Yoga Mat", value: 18 },
@@ -57,7 +61,7 @@ const topProductsData = [
   { name: "Others", value: 25 },
 ];
 
-// Mock data for customer acquisition
+// Mock data for customer acquisition - TODO: Replace with real API data
 const customerAcquisitionData = [
   { name: "Social Media", value: 30 },
   { name: "Direct", value: 25 },
@@ -66,8 +70,8 @@ const customerAcquisitionData = [
   { name: "Email", value: 10 },
 ];
 
-// Mock data for recent activities
-const recentActivities = [
+// Mock data for recent activities - TODO: Replace with real API data
+const recentActivitiesData = [
   {
     id: 1,
     action: "New order #10234",
@@ -100,9 +104,14 @@ const recentActivities = [
   },
 ];
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#AAAAAA"];
-
 const Dashboard: React.FC = () => {
+  // TODO: Replace with real API calls using the useStoreData hook
+  const { data: stats, isLoading: statsLoading } = useStoreData(statsData);
+  const { data: sales, isLoading: salesLoading } = useStoreData(salesData);
+  const { data: topProducts, isLoading: productsLoading } = useStoreData(topProductsData);
+  const { data: customerAcquisition, isLoading: acquisitionLoading } = useStoreData(customerAcquisitionData);
+  const { data: recentActivities, isLoading: activitiesLoading } = useStoreData(recentActivitiesData);
+
   return (
     <div className="container mx-auto space-y-6">
       <div className="flex flex-col gap-2">
@@ -111,143 +120,138 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <stat.icon className="h-5 w-5 text-muted-foreground" />
-                <span className={`text-xs font-medium flex items-center gap-1 ${
-                  stat.trend === "up" ? "text-emerald-500" : "text-red-500"
-                }`}>
-                  {stat.trend === "up" ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {stat.change}
-                </span>
-              </div>
-              <div className="mt-3">
-                <h3 className="text-muted-foreground text-sm font-medium">{stat.title}</h3>
-                <p className="text-2xl font-bold">{stat.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {statsLoading ? (
+        <LoadingState message="Loading dashboard statistics..." />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, index) => (
+            <Card key={index}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <stat.icon className="h-5 w-5 text-muted-foreground" />
+                  <span className={`text-xs font-medium flex items-center gap-1 ${
+                    stat.trend === "up" ? "text-emerald-500" : "text-red-500"
+                  }`}>
+                    {stat.trend === "up" ? (
+                      <ArrowUpRight className="h-3 w-3" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3" />
+                    )}
+                    {stat.change}
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <h3 className="text-muted-foreground text-sm font-medium">{stat.title}</h3>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Sales Chart */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Sales Overview</CardTitle>
-            <CardDescription>Sales vs target for the last 6 months</CardDescription>
-            <Tabs defaultValue="monthly">
-              <TabsList>
-                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                <TabsTrigger value="yearly">Yearly</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="sales" stroke="#8884d8" strokeWidth={2} />
-                  <Line type="monotone" dataKey="target" stroke="#82ca9d" strokeWidth={2} strokeDasharray="3 3" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <ChartWrapper
+          title="Sales Overview"
+          description="Sales vs target for the last 6 months"
+          isLoading={salesLoading}
+          isEmpty={!salesLoading && (!sales || sales.length === 0)}
+          className="md:col-span-2"
+        >
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={sales}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => [formatCurrency(Number(value)), "Amount"]} />
+                <Legend />
+                <Line type="monotone" dataKey="sales" stroke={CHART_COLORS[0]} strokeWidth={2} />
+                <Line type="monotone" dataKey="target" stroke={CHART_COLORS[1]} strokeWidth={2} strokeDasharray="3 3" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWrapper>
 
         {/* Top Products */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Products</CardTitle>
-            <CardDescription>Most sold products by percentage</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={topProductsData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {topProductsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <ChartWrapper
+          title="Top Products"
+          description="Most sold products by percentage"
+          isLoading={productsLoading}
+          isEmpty={!productsLoading && (!topProducts || topProducts.length === 0)}
+        >
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={topProducts}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {topProducts.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWrapper>
 
         {/* Customer Acquisition */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Acquisition</CardTitle>
-            <CardDescription>How customers find your store</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  data={customerAcquisitionData}
-                  layout="vertical"
-                  margin={{ top: 20, right: 30, left: 80, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" />
-                  <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
-                  <Bar dataKey="value" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <ChartWrapper
+          title="Customer Acquisition"
+          description="How customers find your store"
+          isLoading={acquisitionLoading}
+          isEmpty={!acquisitionLoading && (!customerAcquisition || customerAcquisition.length === 0)}
+        >
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={customerAcquisition}
+                layout="vertical"
+                margin={{ top: 20, right: 30, left: 80, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="name" />
+                <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
+                <Bar dataKey="value" fill={CHART_COLORS[0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWrapper>
 
         {/* Recent Activity */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates from your store</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start">
-                  <div className="mr-4 mt-1">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{activity.action}</p>
-                    <p className="text-sm text-muted-foreground">{activity.details}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-                  </div>
+        <ChartWrapper
+          title="Recent Activity"
+          description="Latest updates from your store"
+          isLoading={activitiesLoading}
+          isEmpty={!activitiesLoading && (!recentActivities || recentActivities.length === 0)}
+          className="md:col-span-2"
+        >
+          <div className="space-y-6">
+            {recentActivities.map((activity) => (
+              <div key={activity.id} className="flex items-start">
+                <div className="mr-4 mt-1">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div>
+                  <p className="font-medium">{activity.action}</p>
+                  <p className="text-sm text-muted-foreground">{activity.details}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ChartWrapper>
       </div>
     </div>
   );

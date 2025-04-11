@@ -7,11 +7,15 @@ import { SendHorizontal, Mic } from "lucide-react";
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isLoading?: boolean;
+  placeholder?: string;
+  enableVoice?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading = false,
+  placeholder = "Ask about your store's analytics...",
+  enableVoice = true,
 }) => {
   const [inputValue, setInputValue] = useState("");
 
@@ -31,10 +35,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  const handleVoiceInput = () => {
+    // TODO: Implement voice input functionality
+    console.log("Voice input requested - not yet implemented");
+  };
+
   return (
     <form onSubmit={handleSubmit} className="relative">
       <Textarea
-        placeholder="Ask about your store's analytics..."
+        placeholder={placeholder}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -42,16 +51,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         disabled={isLoading}
       />
       <div className="absolute right-2 bottom-2 flex gap-2">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          disabled={isLoading}
-          className="rounded-full"
-        >
-          <Mic className="h-5 w-5" />
-          <span className="sr-only">Voice input</span>
-        </Button>
+        {enableVoice && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={handleVoiceInput}
+            disabled={isLoading}
+            className="rounded-full"
+          >
+            <Mic className="h-5 w-5" />
+            <span className="sr-only">Voice input</span>
+          </Button>
+        )}
         <Button
           type="submit"
           size="icon"
