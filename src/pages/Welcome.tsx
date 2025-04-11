@@ -9,7 +9,7 @@ import { Loader, Check, ArrowRight, Store } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { storeContext } from "@/hooks/useStoreData";
 import { SYNC_STATUS, ROUTES } from "@/utils/constants";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
