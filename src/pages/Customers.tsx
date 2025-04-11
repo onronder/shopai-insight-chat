@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -266,7 +265,21 @@ const CustomersPage: React.FC = () => {
                     dataKey="rate" 
                     stroke="#8884d8" 
                     strokeWidth={2}
-                    strokeDasharray={(dataPoint: ChurnDataPoint) => dataPoint.projected ? "5 5" : "0"} 
+                    name="Actual"
+                    isAnimationActive={false}
+                    connectNulls={true}
+                    dot={(data) => data.payload.projected ? false : { r: 4, fill: "#8884d8" }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="rate" 
+                    stroke="#8884d8" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Projected"
+                    isAnimationActive={false}
+                    connectNulls={true}
+                    dot={(data) => data.payload.projected ? { r: 4, fill: "#8884d8" } : false}
                   />
                 </LineChart>
               </ResponsiveContainer>
