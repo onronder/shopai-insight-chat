@@ -13,6 +13,7 @@ import ProductsPage from "./pages/Products";
 import AssistantPage from "./pages/Assistant";
 import SettingsPage from "./pages/Settings";
 import HelpPage from "./pages/Help";
+import Welcome from "./pages/Welcome";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/welcome" element={<AppLayout><Welcome /></AppLayout>} />
           <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
           <Route path="/customers" element={<AppLayout><CustomersPage /></AppLayout>} />
