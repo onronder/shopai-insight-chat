@@ -16,6 +16,7 @@ interface Message {
 }
 
 export const ChatInterface: React.FC = () => {
+  // TODO: Replace with API call to fetch message history from backend
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -64,8 +65,9 @@ export const ChatInterface: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    // TODO: Replace this simulation with an actual API call to LLM backend
+    // TODO: Replace this simulation with an actual API call to LLM backend service
     setTimeout(() => {
+      // TODO: Replace these hardcoded responses with actual AI-generated responses from backend
       const responseOptions = [
         "Based on your Shopify data, sales have increased by 15% compared to last month.",
         "Your best-selling product this week is 'Premium Headphones' with 47 units sold.",
@@ -74,7 +76,7 @@ export const ChatInterface: React.FC = () => {
         "Looking at your traffic sources, 65% of your orders came from social media campaigns, primarily Instagram and Facebook.",
       ];
       
-      // TODO: Replace with actual AI response from backend
+      // TODO: Replace with actual AI response from backend API
       const aiResponse: Message = {
         id: Date.now().toString(),
         type: "ai",

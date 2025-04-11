@@ -13,7 +13,7 @@ import {
   Area
 } from "recharts";
 
-// TODO: Replace this static data with API call to fetch sales data
+// TODO: Replace this static data with API call to fetch sales data from backend
 const data = [
   { name: "Jan", sales: 4000 },
   { name: "Feb", sales: 3000 },
@@ -38,6 +38,9 @@ export const SalesChart: React.FC<SalesChartProps> = ({
   title = "Sales Overview", 
   variant = "line" 
 }) => {
+  // TODO: Add loading state when fetching data from API
+  // TODO: Add error handling for API failures
+  
   return (
     <Card>
       <CardHeader className="pb-2">

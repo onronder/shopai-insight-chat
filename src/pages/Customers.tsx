@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,7 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-// TODO: Replace these imports with API calls to fetch customer data
+// TODO: Replace these imports with API calls to fetch customer data from backend
 import { 
   customers, 
   ltvData, 
@@ -29,7 +30,7 @@ const CustomersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(true);
 
-  // Simulate loading state
+  // TODO: Replace with actual API data loading and error handling
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
@@ -112,18 +113,23 @@ const CustomersPage: React.FC = () => {
             </Tabs>
           </CardHeader>
           <CardContent>
+            {/* TODO: Replace with dynamic data fetched from backend */}
             <CustomerSegmentsTable customers={customers} />
           </CardContent>
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* TODO: Replace with dynamic LTV data from backend */}
           <LtvDistributionChart data={ltvData} />
+          {/* TODO: Replace with dynamic signup data from backend */}
           <RecentSignups recentSignups={recentSignups} />
+          {/* TODO: Replace with dynamic churn data from backend */}
           <ChurnForecastChart 
             actualData={actualChurnData}
             projectedData={projectedChurnData}
             combinedData={churnData}
           />
+          {/* TODO: Replace with dynamic best customers data from backend */}
           <BestCustomers customers={bestCustomers} />
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { 
@@ -53,6 +54,7 @@ const SettingsPage: React.FC = () => {
   const [responseLength, setResponseLength] = useState([50]);
   const [pageLoading, setPageLoading] = useState(false);
   
+  // TODO: Replace with API call to fetch user settings from backend
   const { handleSubmit, formState } = useForm({
     defaultValues: {
       timeRange: "30",
@@ -66,7 +68,7 @@ const SettingsPage: React.FC = () => {
 
   const onSubmit = () => {
     setIsLoading(true);
-    // Simulate API call
+    // TODO: Replace with API call to save settings to backend
     setTimeout(() => {
       setIsLoading(false);
       toast.success("Settings saved successfully");
@@ -75,7 +77,7 @@ const SettingsPage: React.FC = () => {
 
   const handleManualSync = () => {
     setIsSyncing(true);
-    // Simulate sync
+    // TODO: Replace with API call to trigger data synchronization
     setTimeout(() => {
       setIsSyncing(false);
       toast.success("Data synced successfully");
@@ -84,6 +86,7 @@ const SettingsPage: React.FC = () => {
 
   const handleDeleteHistory = () => {
     setConfirmDialogOpen(false);
+    // TODO: Replace with API call to delete chat history
     toast.success("AI chat history deleted successfully");
   };
 
@@ -252,6 +255,7 @@ const SettingsPage: React.FC = () => {
                 </Button>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Clock className="mr-1 h-4 w-4" />
+                  {/* TODO: Replace with actual last sync time from API */}
                   Last synced 2h ago
                 </div>
               </div>
@@ -332,6 +336,7 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </div>
                 <Button variant="outline">
+                  {/* TODO: Connect to billing management API or service */}
                   Manage Subscription
                 </Button>
               </div>
