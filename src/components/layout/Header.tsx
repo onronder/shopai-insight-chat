@@ -25,6 +25,7 @@ export const Header: React.FC = () => {
     if (path.includes("/products")) return "Product Performance";
     if (path.includes("/assistant")) return "AI Assistant 🤖";
     if (path.includes("/settings")) return "Settings";
+    if (path.includes("/help")) return "Help & Support";
     return "Dashboard";
   };
 
@@ -53,9 +54,11 @@ export const Header: React.FC = () => {
                 <span>Settings</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <HelpCircle className="mr-2 h-4 w-4" />
-              <span>Help & Support</span>
+            <DropdownMenuItem asChild>
+              <Link to="/help" className="flex items-center cursor-pointer">
+                <HelpCircle className="mr-2 h-4 w-4" />
+                <span>Help & Support</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
