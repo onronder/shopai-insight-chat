@@ -1,9 +1,17 @@
 
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { ModeToggle } from "./ModeToggle";
 import { Button } from "@/components/ui/button";
-import { Settings, User } from "lucide-react";
+import { Settings, User, HelpCircle, LogOut, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Header: React.FC = () => {
   const location = useLocation();
@@ -16,6 +24,7 @@ export const Header: React.FC = () => {
     if (path.includes("/orders")) return "Orders & Fulfillment";
     if (path.includes("/products")) return "Product Performance";
     if (path.includes("/assistant")) return "AI Assistant 🤖";
+    if (path.includes("/settings")) return "Settings";
     return "Dashboard";
   };
 
@@ -28,14 +37,40 @@ export const Header: React.FC = () => {
           <span className="font-medium text-foreground">mydemostore</span>.myshopify.com
         </div>
         <ModeToggle />
-        <Button variant="ghost" size="icon">
-          <User className="h-5 w-5" />
-          <span className="sr-only">Profile</span>
-        </Button>
-        <Button variant="ghost" size="icon">
-          <Settings className="h-5 w-5" />
-          <span className="sr-only">Settings</span>
-        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+              <User className="h-5 w-5" />
+              <span className="sr-only">Profile menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link to="/settings" className="flex items-center cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              <span>Help & Support</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        <Link to="/settings">
+          <Button variant="ghost" size="icon">
+            <Settings className="h-5 w-5" />
+            <span className="sr-only">Settings</span>
+          </Button>
+        </Link>
       </div>
     </header>
   );
