@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { Customer } from "@/types/customer-types";
 import { CustomerSegmentBadge } from "./CustomerSegmentBadge";
+import { Badge } from "@/components/ui/badge";
 
 interface CustomerSegmentsTableProps {
   customers: Customer[];

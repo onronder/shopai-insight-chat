@@ -73,11 +73,11 @@ export const ltvData: LtvRange[] = [
 
 // Recent signups data
 export const recentSignups: Customer[] = [
-  { id: 1, name: "Alex Morgan", date: "2023-04-18", firstOrderValue: 124.99, ltv: 124.99 },
-  { id: 2, name: "Taylor Swift", date: "2023-04-17", firstOrderValue: 79.99, ltv: 79.99 },
-  { id: 3, name: "Morgan Freeman", date: "2023-04-16", firstOrderValue: 189.50, ltv: 189.50 },
-  { id: 4, name: "Chris Hemsworth", date: "2023-04-15", firstOrderValue: 57.25, ltv: 57.25 },
-  { id: 5, name: "Emma Stone", date: "2023-04-14", firstOrderValue: 130.00, ltv: 130.00 },
+  { id: 1, name: "Alex Morgan", email: "alex.morgan@example.com", date: "2023-04-18", firstOrderValue: 124.99, ltv: 124.99 },
+  { id: 2, name: "Taylor Swift", email: "taylor.swift@example.com", date: "2023-04-17", firstOrderValue: 79.99, ltv: 79.99 },
+  { id: 3, name: "Morgan Freeman", email: "morgan.freeman@example.com", date: "2023-04-16", firstOrderValue: 189.50, ltv: 189.50 },
+  { id: 4, name: "Chris Hemsworth", email: "chris.hemsworth@example.com", date: "2023-04-15", firstOrderValue: 57.25, ltv: 57.25 },
+  { id: 5, name: "Emma Stone", email: "emma.stone@example.com", date: "2023-04-14", firstOrderValue: 130.00, ltv: 130.00 },
 ];
 
 // Define separate datasets for actual and projected churn data
