@@ -3,6 +3,7 @@ import React from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { ThemeProvider } from "./ThemeProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             {children}
           </main>
         </div>
+        <Toaster />
       </div>
     </ThemeProvider>
   );

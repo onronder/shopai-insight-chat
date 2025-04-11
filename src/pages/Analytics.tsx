@@ -8,6 +8,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+// TODO: Replace static or placeholder content with live data
+
 // TODO: Replace with API call to fetch analytics data from backend
 const salesData = [
   { name: "Jan", total: 2400, net: 2000, refunds: 400, tax: 200 },

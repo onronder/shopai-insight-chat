@@ -10,6 +10,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+// TODO: Replace static or placeholder content with live data
+
 // TODO: Replace this static data with API call to fetch sales data from backend
 const salesData = [
   { name: "Jan", sales: 4000 },

@@ -5,6 +5,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+// TODO: Replace static or placeholder content with live data
+
 const Index = () => {
   // TODO: Add loading state when checking for user authentication
   const isLoading = false;

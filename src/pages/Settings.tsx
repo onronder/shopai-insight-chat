@@ -10,7 +10,9 @@ import { LoadingState } from "@/components/common/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useStoreData } from "@/hooks/useStoreData";
 
-// Import the new component files
+// TODO: Replace static or placeholder content with live data
+
+// Import the settings component files
 import AppPreferences from "@/components/settings/AppPreferences";
 import AIAssistantSettings from "@/components/settings/AIAssistantSettings";
 import DataSyncSettings from "@/components/settings/DataSyncSettings";

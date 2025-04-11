@@ -8,6 +8,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+// TODO: Replace static or placeholder content with live data
+
 // TODO: Replace these imports with API calls to fetch customer data from backend
 import { 
   customers, 

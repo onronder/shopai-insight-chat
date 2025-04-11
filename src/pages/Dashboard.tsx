@@ -6,13 +6,13 @@ import { ArrowUpRight, ArrowDownRight, TrendingUp, Users, ShoppingCart, DollarSi
 import { useStoreData } from "@/hooks/useStoreData";
 import { ChartWrapper } from "@/components/charts/ChartWrapper";
 import { LoadingState } from "@/components/common/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { CHART_COLORS } from "@/utils/constants";
 import { formatCurrency } from "@/utils/formatters";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
 
-// TODO: Replace this static data with API calls to fetch actual dashboard stats
+// TODO: Replace static or placeholder content with live data
 const statsData = [
   {
     title: "Total Revenue",
