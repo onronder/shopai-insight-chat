@@ -50,33 +50,21 @@ const AssistantPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading) {
-    return (
-      <AppLayout>
-        <div className="container mx-auto h-full">
-          <div className="flex h-[calc(100vh-9rem)] flex-col md:flex-row gap-4">
-            <Skeleton className="w-full md:w-64 h-full" />
-            <Skeleton className="flex-1 h-full" />
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
+  // Define handleNewConversation before it's used in the early return paths
+  const handleNewConversation = () => {
+    // TODO: Implement API integration for conversation creation
+    const newConversation: ConversationType = {
+      id: Date.now().toString(),
+      title: "New Conversation",
+      timestamp: new Date(),
+      isPinned: false,
+      messages: [],
+    };
 
-  if (conversations.length === 0) {
-    return (
-      <AppLayout>
-        <div className="container mx-auto h-full">
-          <EmptyState
-            title="No conversations yet"
-            description="Start chatting with the AI assistant to analyze your store data"
-            actionLabel="New Conversation"
-            onAction={handleNewConversation}
-          />
-        </div>
-      </AppLayout>
-    );
-  }
+    setConversations([newConversation, ...conversations]);
+    setActiveConversation(newConversation);
+    setMessageInput("");
+  };
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeConversation) return;
@@ -112,21 +100,6 @@ const AssistantPage: React.FC = () => {
     setMessageInput("");
   };
 
-  const handleNewConversation = () => {
-    // TODO: Implement API integration for conversation creation
-    const newConversation: ConversationType = {
-      id: Date.now().toString(),
-      title: "New Conversation",
-      timestamp: new Date(),
-      isPinned: false,
-      messages: [],
-    };
-
-    setConversations([newConversation, ...conversations]);
-    setActiveConversation(newConversation);
-    setMessageInput("");
-  };
-
   const handleSelectConversation = (conversation: ConversationType) => {
     setActiveConversation(conversation);
   };
@@ -134,6 +107,34 @@ const AssistantPage: React.FC = () => {
   const handleSelectSuggestion = (suggestion: string) => {
     setMessageInput(suggestion);
   };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto h-full">
+          <div className="flex h-[calc(100vh-9rem)] flex-col md:flex-row gap-4">
+            <Skeleton className="w-full md:w-64 h-full" />
+            <Skeleton className="flex-1 h-full" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto h-full">
+          <EmptyState
+            title="No conversations yet"
+            description="Start chatting with the AI assistant to analyze your store data"
+            actionLabel="New Conversation"
+            onAction={handleNewConversation}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
