@@ -22,7 +22,7 @@ const SalesChart: React.FC = () => {
     queryKey: ['salesData'],
     queryFn: async () => {
       // Simulate API call
-      return new Promise((resolve) => {
+      return new Promise<typeof mockSalesData>((resolve) => {
         setTimeout(() => {
           resolve(mockSalesData);
         }, 1000);
