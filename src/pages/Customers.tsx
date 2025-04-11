@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,6 +95,24 @@ interface ChurnDataPoint {
   projected?: boolean;
 }
 
+// Define separate datasets for actual and projected data
+const actualChurnData: ChurnDataPoint[] = [
+  { month: "Jan", rate: 2.1 },
+  { month: "Feb", rate: 2.3 },
+  { month: "Mar", rate: 2.2 },
+  { month: "Apr", rate: 2.5 },
+  { month: "May", rate: 2.8 },
+];
+
+const projectedChurnData: ChurnDataPoint[] = [
+  // Include the last actual point for continuity
+  { month: "May", rate: 2.8 },
+  { month: "Jun", rate: 3.1, projected: true },
+  { month: "Jul", rate: 3.4, projected: true },
+  { month: "Aug", rate: 3.6, projected: true },
+];
+
+// Combined data for display
 const churnData: ChurnDataPoint[] = [
   { month: "Jan", rate: 2.1 },
   { month: "Feb", rate: 2.3 },
@@ -260,6 +279,7 @@ const CustomersPage: React.FC = () => {
                   <XAxis dataKey="month" />
                   <YAxis domain={[0, 5]} tickFormatter={(value) => `${value}%`} />
                   <Tooltip formatter={(value) => [`${value}%`, "Churn Rate"]} />
+                  {/* Actual data line */}
                   <Line 
                     type="monotone" 
                     dataKey="rate" 
@@ -268,10 +288,13 @@ const CustomersPage: React.FC = () => {
                     name="Actual"
                     isAnimationActive={false}
                     connectNulls={true}
-                    dot={(data) => data.payload.projected ? false : { r: 4, fill: "#8884d8" }}
+                    dot={false}
+                    activeDot={{ r: 6, fill: "#8884d8" }}
                   />
+                  {/* Projected data line with dashed stroke */}
                   <Line 
                     type="monotone" 
+                    data={projectedChurnData}
                     dataKey="rate" 
                     stroke="#8884d8" 
                     strokeWidth={2}
@@ -279,7 +302,7 @@ const CustomersPage: React.FC = () => {
                     name="Projected"
                     isAnimationActive={false}
                     connectNulls={true}
-                    dot={(data) => data.payload.projected ? { r: 4, fill: "#8884d8" } : false}
+                    dot={{ r: 4, fill: "#8884d8" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
