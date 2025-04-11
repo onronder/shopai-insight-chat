@@ -12,8 +12,11 @@ import {
   AreaChart, 
   Area
 } from "recharts";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // TODO: Replace this static data with API call to fetch sales data from backend
+// TODO: Replace this static chart data with dynamic Supabase metrics fetched from the backend
 const data = [
   { name: "Jan", sales: 4000 },
   { name: "Feb", sales: 3000 },
@@ -32,15 +35,50 @@ const data = [
 interface SalesChartProps {
   title?: string;
   variant?: "line" | "area";
+  isLoading?: boolean; // Add loading state prop
 }
 
 export const SalesChart: React.FC<SalesChartProps> = ({ 
   title = "Sales Overview", 
-  variant = "line" 
+  variant = "line",
+  isLoading = false
 }) => {
   // TODO: Add loading state when fetching data from API
   // TODO: Add error handling for API failures
   // TODO: Add refresh mechanism to update chart data on demand
+  
+  // Show skeleton while loading
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[300px]" />
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Show empty state if no data
+  if (!data.length) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState 
+            title="No Sales Data" 
+            description="No sales data yet." 
+            actionLabel="Refresh" 
+            onAction={() => console.log("Refresh clicked")}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card>
