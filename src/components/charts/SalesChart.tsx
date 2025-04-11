@@ -40,6 +40,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({
 }) => {
   // TODO: Add loading state when fetching data from API
   // TODO: Add error handling for API failures
+  // TODO: Add refresh mechanism to update chart data on demand
   
   return (
     <Card>
@@ -51,6 +52,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({
           <ResponsiveContainer width="100%" height="100%">
             {variant === "line" ? (
               <LineChart data={data}>
+                {/* TODO: Add chart configuration options from backend preferences */}
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="name" 
@@ -75,6 +77,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({
               </LineChart>
             ) : (
               <AreaChart data={data}>
+                {/* TODO: Add chart configuration options from backend preferences */}
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="name" 

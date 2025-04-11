@@ -17,6 +17,7 @@ interface Message {
 
 export const ChatInterface: React.FC = () => {
   // TODO: Replace with API call to fetch message history from backend
+  // TODO: Implement pagination for chat history with infinite scroll
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -26,6 +27,8 @@ export const ChatInterface: React.FC = () => {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  // TODO: Add error state for API failures
+  // TODO: Add typing indicator when AI is generating a response
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +58,7 @@ export const ChatInterface: React.FC = () => {
   };
 
   const handleSendMessage = async (content: string) => {
+    // TODO: Implement message validation and sanitization
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -66,6 +70,8 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     // TODO: Replace this simulation with an actual API call to LLM backend service
+    // TODO: Implement proper error handling for API failures
+    // TODO: Add retry mechanism for failed API calls
     setTimeout(() => {
       // TODO: Replace these hardcoded responses with actual AI-generated responses from backend
       const responseOptions = [
@@ -77,6 +83,7 @@ export const ChatInterface: React.FC = () => {
       ];
       
       // TODO: Replace with actual AI response from backend API
+      // TODO: Implement streaming responses for better UX
       const aiResponse: Message = {
         id: Date.now().toString(),
         type: "ai",
