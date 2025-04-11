@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+// TODO: Replace this static data with API call to fetch sales data from backend
 const salesData = [
   { name: "Jan", sales: 4000 },
   { name: "Feb", sales: 3000 },
@@ -37,6 +39,7 @@ type ConversationType = {
   messages: MessageType[];
 };
 
+// TODO: Replace with API call to fetch conversation history from backend
 const sampleConversations: ConversationType[] = [
   {
     id: "1",
@@ -62,6 +65,7 @@ const sampleConversations: ConversationType[] = [
   },
 ];
 
+// TODO: Replace with API call to fetch suggested queries from backend based on user data
 const suggestions = [
   "Show sales trend for last month",
   "Which products have the highest return rate?",
@@ -76,6 +80,7 @@ const AssistantPage: React.FC = () => {
   const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // TODO: Replace with actual API loading and error handling
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
@@ -105,6 +110,7 @@ const AssistantPage: React.FC = () => {
             description="Start chatting with the AI assistant to analyze your store data"
             actionLabel="New Conversation"
             onAction={() => {
+              // TODO: Implement new conversation creation and API integration
               const newConversation: ConversationType = {
                 id: Date.now().toString(),
                 title: "New Conversation",
@@ -126,6 +132,7 @@ const AssistantPage: React.FC = () => {
       return <p className="whitespace-pre-wrap">{message.text}</p>;
     }
 
+    // TODO: Replace with dynamic chart rendering based on actual data from API
     return (
       <div className="space-y-4">
         <p className="whitespace-pre-wrap">{message.text}</p>
@@ -186,6 +193,7 @@ const AssistantPage: React.FC = () => {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeConversation) return;
 
+    // TODO: Implement input validation and sanitization
     const newMessage: MessageType = {
       id: Date.now().toString(),
       sender: "user",
@@ -193,6 +201,7 @@ const AssistantPage: React.FC = () => {
       timestamp: new Date(),
     };
 
+    // TODO: Replace with actual API call to AI backend service
     const assistantResponse: MessageType = {
       id: (Date.now() + 1).toString(),
       sender: "assistant",
@@ -202,6 +211,7 @@ const AssistantPage: React.FC = () => {
       chartType: ["line", "bar", "area", "pie"][Math.floor(Math.random() * 4)] as "line" | "bar" | "area" | "pie",
     };
 
+    // TODO: Implement conversation update through API
     const updatedConversation = {
       ...activeConversation,
       messages: [...activeConversation.messages, newMessage, assistantResponse],
@@ -215,6 +225,7 @@ const AssistantPage: React.FC = () => {
   };
 
   const handleNewConversation = () => {
+    // TODO: Implement API integration for conversation creation
     const newConversation: ConversationType = {
       id: Date.now().toString(),
       title: "New Conversation",

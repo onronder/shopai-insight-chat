@@ -1,6 +1,5 @@
 
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -22,18 +21,17 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/welcome" element={<AppLayout><Welcome /></AppLayout>} />
-          <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-          <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
-          <Route path="/customers" element={<AppLayout><CustomersPage /></AppLayout>} />
-          <Route path="/orders" element={<AppLayout><OrdersPage /></AppLayout>} />
-          <Route path="/products" element={<AppLayout><ProductsPage /></AppLayout>} />
-          <Route path="/assistant" element={<AppLayout><AssistantPage /></AppLayout>} />
-          <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
-          <Route path="/help" element={<AppLayout><HelpPage /></AppLayout>} />
+          <Route path="/welcome" element={<Welcome />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/assistant" element={<AssistantPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/help" element={<HelpPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

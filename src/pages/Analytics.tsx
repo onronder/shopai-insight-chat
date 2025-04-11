@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+// TODO: Replace with API call to fetch analytics data from backend
 const salesData = [
   { name: "Jan", total: 2400, net: 2000, refunds: 400, tax: 200 },
   { name: "Feb", total: 1398, net: 1100, refunds: 298, tax: 150 },
@@ -16,6 +18,7 @@ const salesData = [
   { name: "Jun", total: 3800, net: 3300, refunds: 500, tax: 380 },
 ];
 
+// TODO: Replace with API call to fetch funnel data from backend
 const funnelData = [
   { name: "Sessions", value: 10000 },
   { name: "Cart", value: 3000 },
@@ -49,6 +52,7 @@ const AnalyticsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(true);
 
+  // TODO: Replace with actual API data loading and error handling
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);

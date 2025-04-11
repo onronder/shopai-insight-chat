@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -116,6 +117,7 @@ const Dashboard: React.FC = () => {
   const { data: customerAcquisition, isLoading: acquisitionLoading } = useStoreData(customerAcquisitionData);
   const { data: recentActivities, isLoading: activitiesLoading } = useStoreData(recentActivitiesData);
 
+  // TODO: Replace with actual API data loading and error handling
   React.useEffect(() => {
     // Simulate initial data loading
     const timer = setTimeout(() => {

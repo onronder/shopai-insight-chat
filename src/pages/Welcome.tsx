@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,10 @@ import { Loader, Check, ArrowRight, Store } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { storeContext } from "@/hooks/useStoreData";
 import { SYNC_STATUS, ROUTES } from "@/utils/constants";
+import { useToast } from "@/hooks/use-toast";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // Sync status type definition
 type SyncStatusType = {
@@ -19,6 +22,8 @@ type SyncStatusType = {
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncStatusType>({
     orders: "syncing",
     products: "pending",
@@ -28,12 +33,26 @@ const Welcome: React.FC = () => {
   const [syncProgress, setSyncProgress] = useState(15);
   const [syncComplete, setSyncComplete] = useState(false);
   
-  // Simulate sync progress
-  // TODO: Replace with real API integration
+  // Initial loading simulation
   useEffect(() => {
+    const loadingTimer = setTimeout(() => {
+      setLoading(false);
+    }, 800);
+    
+    return () => clearTimeout(loadingTimer);
+  }, []);
+  
+  // Simulate sync progress
+  useEffect(() => {
+    if (loading) return;
+    
     const timer = setTimeout(() => {
       if (syncProgress >= 100) {
         setSyncComplete(true);
+        toast({
+          title: "Sync complete",
+          description: "Your store data has been successfully imported"
+        });
         return;
       }
       
@@ -50,7 +69,7 @@ const Welcome: React.FC = () => {
     }, 600);
     
     return () => clearTimeout(timer);
-  }, [syncProgress]);
+  }, [syncProgress, loading]);
   
   const goToDashboard = () => {
     navigate(ROUTES.DASHBOARD);
@@ -60,12 +79,25 @@ const Welcome: React.FC = () => {
     navigate(ROUTES.DASHBOARD);
   };
   
-  const sampleQuestions = [
-    "What were my top 3 products last month?",
-    "How's my revenue trending?",
-    "Which customer spent the most in the last 90 days?",
-    "What's my average order value?"
-  ];
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <Skeleton className="h-12 w-3/4" />
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-48 w-full" />
+            <div className="flex justify-between">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
   
   const renderSyncStatus = (status: "pending" | "syncing" | "completed") => {
     switch (status) {
@@ -78,7 +110,6 @@ const Welcome: React.FC = () => {
     }
   };
 
-  // Extract store name from domain
   const storeName = storeContext.shopDomain.split('.')[0];
 
   return (

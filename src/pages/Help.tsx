@@ -29,6 +29,7 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useToast } from "@/hooks/use-toast";
 
 interface HelpArticle {
   id: string;
@@ -44,6 +45,7 @@ interface HelpCategory {
 }
 
 const Help: React.FC = () => {
+  const { toast } = useToast();
   const [selectedArticle, setSelectedArticle] = useState<HelpArticle | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasArticles, setHasArticles] = useState(true);
@@ -299,10 +301,6 @@ const Help: React.FC = () => {
   ];
 
   React.useEffect(() => {
-    if (helpCategories.length > 0 && helpCategories[0].articles.length > 0) {
-      setSelectedArticle(helpCategories[0].articles[0]);
-    }
-    
     const timer = setTimeout(() => {
       setLoading(false);
     }, 1000);
@@ -315,6 +313,10 @@ const Help: React.FC = () => {
 
   const handleFeedback = (type: 'helpful' | 'not-helpful') => {
     console.log(`User found article ${selectedArticle?.id} ${type}`);
+    toast({
+      title: "Feedback received",
+      description: "Thank you for your feedback on this article"
+    });
   };
 
   if (loading) {
@@ -341,7 +343,9 @@ const Help: React.FC = () => {
             title="Help articles are unavailable"
             description="We're currently updating our help documentation. Please check back later."
             actionLabel="Contact Support"
-            onAction={() => console.log("Contact support clicked")}
+            onAction={() => {
+              console.log("Contact support clicked");
+            }}
           />
         </div>
       </AppLayout>

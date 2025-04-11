@@ -43,11 +43,12 @@ import { Label } from "@/components/ui/label";
 import { ModeToggle } from "@/components/layout/ModeToggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 const SettingsPage: React.FC = () => {
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -71,7 +72,10 @@ const SettingsPage: React.FC = () => {
     // TODO: Replace with API call to save settings to backend
     setTimeout(() => {
       setIsLoading(false);
-      toast.success("Settings saved successfully");
+      toast({
+        title: "Success",
+        description: "Settings saved successfully"
+      });
     }, 1000);
   };
 
@@ -80,14 +84,20 @@ const SettingsPage: React.FC = () => {
     // TODO: Replace with API call to trigger data synchronization
     setTimeout(() => {
       setIsSyncing(false);
-      toast.success("Data synced successfully");
+      toast({
+        title: "Data sync completed",
+        description: "All your store data has been synchronized"
+      });
     }, 2000);
   };
 
   const handleDeleteHistory = () => {
     setConfirmDialogOpen(false);
     // TODO: Replace with API call to delete chat history
-    toast.success("AI chat history deleted successfully");
+    toast({
+      title: "History deleted",
+      description: "AI chat history deleted successfully"
+    });
   };
 
   if (pageLoading) {

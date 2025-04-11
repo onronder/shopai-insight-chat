@@ -1,19 +1,20 @@
-
-import React, { useEffect, useRef, useState } from "react";
-import { ChatMessage, MessageType } from "./ChatMessage";
-import { ChatInput } from "./ChatInput";
-import { ChatSuggestions } from "./ChatSuggestions";
-import { ArrowDown } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { ChatContainer } from "./ChatContainer";
+import { ChatInput } from "./ChatInput";
+import { ChatMessage } from "./ChatMessage";
+import { ChatSuggestions } from "./ChatSuggestions";
+import { ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
-interface Message {
+// Message type definition
+export type Message = {
   id: string;
-  type: MessageType;
+  type: "user" | "ai" | "system";
   content: string;
   timestamp: Date;
-}
+};
 
 export const ChatInterface: React.FC = () => {
   // TODO: Replace with API call to fetch message history from backend
@@ -21,8 +22,8 @@ export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      type: "ai",
-      content: "Hello! I'm your ShopAI assistant. How can I help you analyze your Shopify store data today?",
+      type: "system",
+      content: "How can I help you analyze your store data today?",
       timestamp: new Date(),
     },
   ]);
@@ -32,29 +33,26 @@ export const ChatInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  // Auto-scroll to bottom when messages change
+  // TODO: Implement server-sent events for real-time updates to the chat
+  
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Check if we need to show the scroll-to-bottom button
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      // Show button if not at bottom
-      setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
-    };
-
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // TODO: Replace with proper API handlers for scroll events
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const threshold = 100;
+    
+    setShowScrollButton(scrollHeight - scrollTop - clientHeight > threshold);
   };
 
   const handleSendMessage = async (content: string) => {
@@ -75,11 +73,9 @@ export const ChatInterface: React.FC = () => {
     setTimeout(() => {
       // TODO: Replace these hardcoded responses with actual AI-generated responses from backend
       const responseOptions = [
-        "Based on your Shopify data, sales have increased by 15% compared to last month.",
-        "Your best-selling product this week is 'Premium Headphones' with 47 units sold.",
-        "I notice your customer retention rate is 68%. The industry average is around 65%, so you're doing well!",
-        "Your average order value has increased from $42 to $58 over the past 3 months. Would you like to see what's contributing to this growth?",
-        "Looking at your traffic sources, 65% of your orders came from social media campaigns, primarily Instagram and Facebook.",
+        "Based on your store data, I notice that your top-selling product has a high return rate. You might want to look into the product quality or description to ensure customer expectations are being met.",
+        "Looking at your recent sales, I see a positive trend in the last week! Your marketing changes seem to be working well. Keep an eye on the conversion rates from social media channels.",
+        "I analyzed your customer data and found that repeat customers spend 43% more than first-time buyers. You might want to consider implementing a loyalty program to encourage more repeat purchases."
       ];
       
       // TODO: Replace with actual AI response from backend API
@@ -93,67 +89,36 @@ export const ChatInterface: React.FC = () => {
       
       setMessages((prev) => [...prev, aiResponse]);
       setIsLoading(false);
-    }, 1500);
+      
+      toast({
+        title: "Analysis complete",
+        description: "AI has analyzed your data and provided insights"
+      });
+    }, 2000);
   };
 
-  // Handle empty state when no messages are available
-  if (messages.length === 0) {
-    return (
-      <EmptyState
-        title="No messages yet"
-        description="Start a conversation with the AI assistant to analyze your store data."
-        actionLabel="Start conversation"
-        onAction={() => setMessages([{
-          id: "welcome",
-          type: "ai",
-          content: "Hello! I'm your ShopAI assistant. How can I help you analyze your Shopify store data today?",
-          timestamp: new Date(),
-        }])}
-      />
-    );
-  }
-
+  // TODO: Implement message deletion functionality via API
+  // TODO: Implement message editing functionality via API
+  // TODO: Implement conversation export functionality
+  
   return (
-    <div className="flex flex-col h-full">
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
-      >
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            type={message.type}
-            message={message.content}
-            timestamp={message.timestamp}
-          />
-        ))}
-        {isLoading && (
-          <div className="flex justify-start mb-4">
-            <div className="flex space-x-2 pl-12">
-              <div className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse"></div>
-              <div className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse delay-75"></div>
-              <div className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse delay-150"></div>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
+    <ChatContainer ref={containerRef} onScroll={handleScroll}>
+      {messages.map((message) => (
+        <ChatMessage key={message.id} message={message} />
+      ))}
+      <div ref={messagesEndRef} />
       {showScrollButton && (
         <Button
           variant="outline"
           size="icon"
-          className="absolute bottom-24 right-8 rounded-full shadow-md"
+          className="absolute bottom-2 right-2 rounded-full shadow"
           onClick={scrollToBottom}
         >
-          <ArrowDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4" />
         </Button>
       )}
-
-      <div className="p-4 border-t">
-        <ChatSuggestions onSuggestionClick={handleSendMessage} />
-        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
-      </div>
-    </div>
+      <ChatSuggestions />
+      <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+    </ChatContainer>
   );
 };
