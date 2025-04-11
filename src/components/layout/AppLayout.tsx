@@ -8,6 +8,10 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
+/**
+ * Main layout wrapper for all pages in the application
+ * Provides consistent structure with header, sidebar and content area
+ */
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
     <ThemeProvider>

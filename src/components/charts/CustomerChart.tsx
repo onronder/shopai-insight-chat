@@ -9,49 +9,78 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from "recharts";
+import { LoadingState } from "@/components/common/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
 
-// Sample data
-const data = [
-  { name: "New Customers", value: 35 },
-  { name: "Returning", value: 45 },
-  { name: "Loyal", value: 20 },
-];
+interface CustomerChartProps {
+  data?: Array<{name: string, value: number}>;
+  isLoading?: boolean;
+}
 
+// Default colors for the chart
 const COLORS = [
   "hsl(var(--primary))",
   "hsl(var(--accent))",
   "hsl(var(--secondary))",
 ];
 
-export const CustomerChart: React.FC = () => {
+/**
+ * Customer segments pie chart component
+ */
+export const CustomerChart: React.FC<CustomerChartProps> = ({ 
+  data,
+  isLoading = false
+}) => {
+  // TODO: Replace with data from API or Supabase backend
+  const defaultData = [
+    { name: "New Customers", value: 35 },
+    { name: "Returning", value: 45 },
+    { name: "Loyal", value: 20 },
+  ];
+
+  // Use provided data or fallback to default
+  const chartData = data || defaultData;
+  
+  // Check if data is empty
+  const isEmpty = !chartData || chartData.length === 0;
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle>Customer Segments</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {isLoading ? (
+          <LoadingState message="Loading customer segments..." />
+        ) : isEmpty ? (
+          <EmptyState 
+            title="No Segment Data" 
+            description="No customer segment data is available." 
+          />
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,6 +1,6 @@
 
 /**
- * Utility functions for formatting data across the application
+ * Utility functions for formatting data consistently across the application
  */
 
 /**
@@ -31,4 +31,21 @@ export const formatDate = (date: Date): string => {
     month: 'short',
     day: 'numeric'
   }).format(date);
+};
+
+/**
+ * Format time consistently across the app
+ */
+export const formatTime = (date: Date): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
+
+/**
+ * Format number with thousands separators
+ */
+export const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('en-US').format(value);
 };

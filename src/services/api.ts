@@ -10,13 +10,12 @@ export interface ApiResponse<T> {
   status: number;
 }
 
-// TODO: Replace these placeholder functions with real API calls to Supabase or custom backend
-
 /**
  * Get dashboard overview statistics
+ * @returns Promise with dashboard statistics data
  */
 export const getDashboardStats = async (): Promise<ApiResponse<any>> => {
-  // Placeholder - will be implemented with real API
+  // TODO: Replace this with real API call to Supabase backend
   return {
     data: null,
     error: null,
@@ -25,10 +24,12 @@ export const getDashboardStats = async (): Promise<ApiResponse<any>> => {
 };
 
 /**
- * Get analytics data
+ * Get analytics data with specified timeframe
+ * @param timeframe - Time period for analytics data
+ * @returns Promise with analytics data
  */
 export const getAnalyticsData = async (timeframe: string): Promise<ApiResponse<any>> => {
-  // Placeholder - will be implemented with real API
+  // TODO: Replace this with real API call to Supabase backend
   return {
     data: null,
     error: null,
@@ -37,10 +38,12 @@ export const getAnalyticsData = async (timeframe: string): Promise<ApiResponse<a
 };
 
 /**
- * Get customer data
+ * Get customer data filtered by segment
+ * @param segment - Optional customer segment filter
+ * @returns Promise with customer data
  */
 export const getCustomers = async (segment?: string): Promise<ApiResponse<any>> => {
-  // Placeholder - will be implemented with real API
+  // TODO: Replace this with real API call to Supabase backend
   return {
     data: null,
     error: null,
@@ -50,9 +53,10 @@ export const getCustomers = async (segment?: string): Promise<ApiResponse<any>> 
 
 /**
  * Get product data
+ * @returns Promise with product data
  */
 export const getProducts = async (): Promise<ApiResponse<any>> => {
-  // Placeholder - will be implemented with real API
+  // TODO: Replace this with real API call to Supabase backend
   return {
     data: null,
     error: null,
@@ -62,9 +66,10 @@ export const getProducts = async (): Promise<ApiResponse<any>> => {
 
 /**
  * Get order data
+ * @returns Promise with order data
  */
 export const getOrders = async (): Promise<ApiResponse<any>> => {
-  // Placeholder - will be implemented with real API
+  // TODO: Replace this with real API call to Supabase backend
   return {
     data: null,
     error: null,
@@ -74,9 +79,11 @@ export const getOrders = async (): Promise<ApiResponse<any>> => {
 
 /**
  * Send a chat message to the AI assistant
+ * @param message - User message to send to AI
+ * @returns Promise with AI response
  */
 export const sendChatMessage = async (message: string): Promise<ApiResponse<any>> => {
-  // Placeholder - will be implemented with real API
+  // TODO: Replace this with real API call to Supabase or AI service backend
   return {
     data: null,
     error: null,

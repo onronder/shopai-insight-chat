@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingState } from "@/components/common/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChartWrapperProps {
   title: string;
@@ -13,6 +14,7 @@ interface ChartWrapperProps {
   emptyMessage?: string;
   headerAction?: React.ReactNode;
   className?: string;
+  skeletonHeight?: number;
 }
 
 /**
@@ -27,6 +29,7 @@ export const ChartWrapper: React.FC<ChartWrapperProps> = ({
   emptyMessage = "No data available for this chart",
   headerAction,
   className,
+  skeletonHeight = 300,
 }) => {
   return (
     <Card className={className}>
@@ -41,7 +44,9 @@ export const ChartWrapper: React.FC<ChartWrapperProps> = ({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <LoadingState message="Loading chart data..." />
+          <div className="w-full space-y-2">
+            <Skeleton className={`w-full h-[${skeletonHeight}px]`} />
+          </div>
         ) : isEmpty ? (
           <EmptyState 
             title="No Data" 
