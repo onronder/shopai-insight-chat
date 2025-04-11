@@ -13,7 +13,7 @@ import {
   Area
 } from "recharts";
 
-// Sample data
+// TODO: Replace this static data with API call to fetch sales data
 const data = [
   { name: "Jan", sales: 4000 },
   { name: "Feb", sales: 3000 },

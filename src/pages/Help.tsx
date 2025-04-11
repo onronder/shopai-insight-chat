@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -27,8 +26,10 @@ import {
   ThumbsUp, 
   ThumbsDown 
 } from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
-// Define help content structure
 interface HelpArticle {
   id: string;
   title: string;
@@ -44,8 +45,9 @@ interface HelpCategory {
 
 const Help: React.FC = () => {
   const [selectedArticle, setSelectedArticle] = useState<HelpArticle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [hasArticles, setHasArticles] = useState(true);
   
-  // Define help categories and articles
   const helpCategories: HelpCategory[] = [
     {
       id: "general",
@@ -296,11 +298,15 @@ const Help: React.FC = () => {
     }
   ];
 
-  // Set initial article
   React.useEffect(() => {
     if (helpCategories.length > 0 && helpCategories[0].articles.length > 0) {
       setSelectedArticle(helpCategories[0].articles[0]);
     }
+    
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleArticleSelect = (article: HelpArticle) => {
@@ -308,124 +314,151 @@ const Help: React.FC = () => {
   };
 
   const handleFeedback = (type: 'helpful' | 'not-helpful') => {
-    // In a real app, this would send feedback to the server
     console.log(`User found article ${selectedArticle?.id} ${type}`);
   };
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="container py-6 max-w-7xl">
+          <Skeleton className="h-10 w-48 mb-8" />
+          <Skeleton className="h-12 w-full mb-8" />
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Skeleton className="h-80 md:col-span-1" />
+            <Skeleton className="h-80 md:col-span-3" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!hasArticles || helpCategories.length === 0) {
+    return (
+      <AppLayout>
+        <div className="container py-6 max-w-7xl">
+          <EmptyState
+            title="Help articles are unavailable"
+            description="We're currently updating our help documentation. Please check back later."
+            actionLabel="Contact Support"
+            onAction={() => console.log("Contact support clicked")}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
-    <div className="container py-6 max-w-7xl">
-      <h1 className="text-3xl font-bold mb-8">Help & Support</h1>
+    <AppLayout>
+      <div className="container py-6 max-w-7xl">
+        <h1 className="text-3xl font-bold mb-8">Help & Support</h1>
 
-      {/* Search Bar */}
-      <div className="relative mb-8">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input 
-          placeholder="Search help topics..." 
-          className="pl-10 w-full md:w-96"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Help Categories (Sidebar) */}
-        <div className="md:col-span-1">
-          <Tabs 
-            defaultValue="general" 
-            className="w-full" 
-            orientation="vertical"
-            onValueChange={(value) => {
-              const category = helpCategories.find(c => c.id === value);
-              if (category && category.articles.length > 0) {
-                setSelectedArticle(category.articles[0]);
-              }
-            }}
-          >
-            <TabsList className="flex flex-col h-auto w-full bg-card rounded-md p-1 md:space-y-1">
-              {helpCategories.map((category) => (
-                <TabsTrigger 
-                  key={category.id}
-                  value={category.id}
-                  className="justify-start w-full text-left gap-2 px-3 py-2 h-auto"
-                >
-                  {category.icon}
-                  {category.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {/* We're rendering the article list separately below */}
-            {helpCategories.map((category) => (
-              <TabsContent key={category.id} value={category.id} className="hidden md:block">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">{category.label} Topics</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="flex flex-col">
-                      {category.articles.map((article) => (
-                        <Button
-                          key={article.id}
-                          variant="ghost"
-                          className={`justify-start rounded-none text-left px-4 py-2 ${
-                            selectedArticle?.id === article.id ? 'bg-muted font-medium' : ''
-                          }`}
-                          onClick={() => handleArticleSelect(article)}
-                        >
-                          {article.title}
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            ))}
-          </Tabs>
+        <div className="relative mb-8">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search help topics..." 
+            className="pl-10 w-full md:w-96"
+          />
         </div>
 
-        {/* Main Content Area */}
-        <div className="md:col-span-3">
-          {selectedArticle && (
-            <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-1">
+            <Tabs 
+              defaultValue="general" 
+              className="w-full" 
+              orientation="vertical"
+              onValueChange={(value) => {
+                const category = helpCategories.find(c => c.id === value);
+                if (category && category.articles.length > 0) {
+                  setSelectedArticle(category.articles[0]);
+                }
+              }}
+            >
+              <TabsList className="flex flex-col h-auto w-full bg-card rounded-md p-1 md:space-y-1">
+                {helpCategories.map((category) => (
+                  <TabsTrigger 
+                    key={category.id}
+                    value={category.id}
+                    className="justify-start w-full text-left gap-2 px-3 py-2 h-auto"
+                  >
+                    {category.icon}
+                    {category.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {helpCategories.map((category) => (
+                <TabsContent key={category.id} value={category.id} className="hidden md:block">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium">{category.label} Topics</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="flex flex-col">
+                        {category.articles.map((article) => (
+                          <Button
+                            key={article.id}
+                            variant="ghost"
+                            className={`justify-start rounded-none text-left px-4 py-2 ${
+                              selectedArticle?.id === article.id ? 'bg-muted font-medium' : ''
+                            }`}
+                            onClick={() => handleArticleSelect(article)}
+                          >
+                            {article.title}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+
+          <div className="md:col-span-3">
+            {selectedArticle && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{selectedArticle.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedArticle.content}
+                </CardContent>
+                <CardFooter className="flex flex-col items-start space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Was this article helpful?</p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleFeedback('helpful')}>
+                        <ThumbsUp className="h-4 w-4 mr-1" />
+                        Yes
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleFeedback('not-helpful')}>
+                        <ThumbsDown className="h-4 w-4 mr-1" />
+                        No
+                      </Button>
+                    </div>
+                  </div>
+                </CardFooter>
+              </Card>
+            )}
+
+            <Card className="mt-6">
               <CardHeader>
-                <CardTitle>{selectedArticle.title}</CardTitle>
+                <CardTitle>Still need help?</CardTitle>
               </CardHeader>
               <CardContent>
-                {selectedArticle.content}
+                <p className="mb-4">Can't find what you're looking for? Our support team is ready to assist you.</p>
+                <Button className="gap-2">
+                  <Mail className="h-4 w-4" />
+                  Contact Support
+                </Button>
+                <p className="text-sm text-muted-foreground mt-2">We usually respond within 24 hours</p>
               </CardContent>
-              <CardFooter className="flex flex-col items-start space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Was this article helpful?</p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleFeedback('helpful')}>
-                      <ThumbsUp className="h-4 w-4 mr-1" />
-                      Yes
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleFeedback('not-helpful')}>
-                      <ThumbsDown className="h-4 w-4 mr-1" />
-                      No
-                    </Button>
-                  </div>
-                </div>
-              </CardFooter>
             </Card>
-          )}
-
-          {/* Contact & Support Section */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Still need help?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">Can't find what you're looking for? Our support team is ready to assist you.</p>
-              <Button className="gap-2">
-                <Mail className="h-4 w-4" />
-                Contact Support
-              </Button>
-              <p className="text-sm text-muted-foreground mt-2">We usually respond within 24 hours</p>
-            </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 

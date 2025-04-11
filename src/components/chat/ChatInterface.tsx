@@ -5,6 +5,8 @@ import { ChatInput } from "./ChatInput";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Message {
   id: string;
@@ -62,7 +64,7 @@ export const ChatInterface: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Simulate AI response after a short delay
+    // TODO: Replace this simulation with an actual API call to LLM backend
     setTimeout(() => {
       const responseOptions = [
         "Based on your Shopify data, sales have increased by 15% compared to last month.",
@@ -72,6 +74,7 @@ export const ChatInterface: React.FC = () => {
         "Looking at your traffic sources, 65% of your orders came from social media campaigns, primarily Instagram and Facebook.",
       ];
       
+      // TODO: Replace with actual AI response from backend
       const aiResponse: Message = {
         id: Date.now().toString(),
         type: "ai",
@@ -83,6 +86,23 @@ export const ChatInterface: React.FC = () => {
       setIsLoading(false);
     }, 1500);
   };
+
+  // Handle empty state when no messages are available
+  if (messages.length === 0) {
+    return (
+      <EmptyState
+        title="No messages yet"
+        description="Start a conversation with the AI assistant to analyze your store data."
+        actionLabel="Start conversation"
+        onAction={() => setMessages([{
+          id: "welcome",
+          type: "ai",
+          content: "Hello! I'm your ShopAI assistant. How can I help you analyze your Shopify store data today?",
+          timestamp: new Date(),
+        }])}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

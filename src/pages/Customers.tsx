@@ -1,11 +1,13 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
-// Import data
+// TODO: Replace these imports with API calls to fetch customer data
 import { 
   customers, 
   ltvData, 
@@ -24,55 +26,108 @@ import { ChurnForecastChart } from "@/components/customers/ChurnForecastChart";
 import { BestCustomers } from "@/components/customers/BestCustomers";
 
 const CustomersPage: React.FC = () => {
-  return (
-    <div className="container mx-auto space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Customer Intelligence</h2>
-          <p className="text-muted-foreground">Analyze your customer base and behavior patterns</p>
+  const [loading, setLoading] = useState(true);
+  const [hasData, setHasData] = useState(true);
+
+  // Simulate loading state
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-10 w-40" />
+          </div>
+          <Skeleton className="h-96 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
         </div>
-        <Select defaultValue="all">
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by segment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Segments</SelectItem>
-            <SelectItem value="high-value">High Value</SelectItem>
-            <SelectItem value="repeat">Repeat Buyers</SelectItem>
-            <SelectItem value="at-risk">At Risk</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      </AppLayout>
+    );
+  }
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer Segments</CardTitle>
-          <CardDescription>View and analyze customer segments based on spending behavior</CardDescription>
-          <Tabs defaultValue="all">
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="high-value">High-Value</TabsTrigger>
-              <TabsTrigger value="repeat">Repeat Buyers</TabsTrigger>
-              <TabsTrigger value="at-risk">At-Risk</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardHeader>
-        <CardContent>
-          <CustomerSegmentsTable customers={customers} />
-        </CardContent>
-      </Card>
+  // Empty state if no customer data available
+  if (!hasData || customers.length === 0) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <EmptyState
+            title="No customer data available"
+            description="Connect your store to import customer data or add customers manually"
+            actionLabel="Connect Store"
+            onAction={() => console.log("Connect store clicked")}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <LtvDistributionChart data={ltvData} />
-        <RecentSignups recentSignups={recentSignups} />
-        <ChurnForecastChart 
-          actualData={actualChurnData}
-          projectedData={projectedChurnData}
-          combinedData={churnData}
-        />
-        <BestCustomers customers={bestCustomers} />
+  return (
+    <AppLayout>
+      <div className="container mx-auto space-y-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Customer Intelligence</h2>
+            <p className="text-muted-foreground">Analyze your customer base and behavior patterns</p>
+          </div>
+          <Select defaultValue="all">
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by segment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Segments</SelectItem>
+              <SelectItem value="high-value">High Value</SelectItem>
+              <SelectItem value="repeat">Repeat Buyers</SelectItem>
+              <SelectItem value="at-risk">At Risk</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Segments</CardTitle>
+            <CardDescription>View and analyze customer segments based on spending behavior</CardDescription>
+            <Tabs defaultValue="all">
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="high-value">High-Value</TabsTrigger>
+                <TabsTrigger value="repeat">Repeat Buyers</TabsTrigger>
+                <TabsTrigger value="at-risk">At-Risk</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent>
+            <CustomerSegmentsTable customers={customers} />
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <LtvDistributionChart data={ltvData} />
+          <RecentSignups recentSignups={recentSignups} />
+          <ChurnForecastChart 
+            actualData={actualChurnData}
+            projectedData={projectedChurnData}
+            combinedData={churnData}
+          />
+          <BestCustomers customers={bestCustomers} />
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 
