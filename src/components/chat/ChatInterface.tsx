@@ -8,6 +8,8 @@ import { ChatSuggestions } from "./ChatSuggestions";
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Message type definition
 export type Message = {
@@ -56,6 +58,7 @@ export const ChatInterface: React.FC = () => {
     setShowScrollButton(scrollHeight - scrollTop - clientHeight > threshold);
   };
 
+  // TODO: Connect this to the backend AI chat API (GPT-based).
   const handleSendMessage = async (content: string) => {
     // TODO: Implement message validation and sanitization
     // Add user message
@@ -107,6 +110,24 @@ export const ChatInterface: React.FC = () => {
   // TODO: Implement message editing functionality via API
   // TODO: Implement conversation export functionality
   
+  // Display empty state if no messages
+  if (!messages.length) {
+    return (
+      <div className="flex flex-col h-full p-4">
+        <EmptyState 
+          title="No conversations yet" 
+          description="Start a conversation with the AI assistant to analyze your data"
+          actionLabel="Ask a question"
+          onAction={() => {
+            // Optional: add a default question or focus on input
+            console.log("Starting new conversation");
+          }}
+        />
+        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+      </div>
+    );
+  }
+  
   return (
     <div ref={containerRef} onScroll={handleScroll} className="flex flex-col h-full overflow-y-auto p-4 space-y-4">
       {messages.map((message) => (
@@ -117,6 +138,13 @@ export const ChatInterface: React.FC = () => {
           timestamp={message.timestamp} 
         />
       ))}
+      
+      {isLoading && (
+        <div className="mb-4">
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      )}
+      
       <div ref={messagesEndRef} />
       {showScrollButton && (
         <Button
@@ -133,3 +161,4 @@ export const ChatInterface: React.FC = () => {
     </div>
   );
 };
+
