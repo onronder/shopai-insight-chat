@@ -1,0 +1,12 @@
+# shopify.app.toml
+
+[shopify]
+api_key = 9b6bc3e7bf1edf7b2c9231a37137b1d5
+api_secret = 389c1036ea4f5b50ff607fc229cd0b0b
+scopes = "read_products,read_orders,read_customers,write_customers,write_products"
+application_url = "https://your-ngrok-url-here"
+redirect_url_allowlist = ["https://your-ngrok-url-here/api/auth/callback"]
+
+[cli]
+app_framework = "vite"
+web_dir = "dist"
