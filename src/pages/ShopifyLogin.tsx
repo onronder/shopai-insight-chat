@@ -1,15 +1,28 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ShoppingBag, Sparkles, BarChart, Brain } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Sparkles, BarChart, Brain, AlertCircle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Link } from 'react-router-dom';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
  * ShopifyLogin page - OAuth entry point for Shopify merchants
  * This page doesn't include a regular login form, just a CTA to connect a Shopify store
  */
 const ShopifyLogin: React.FC = () => {
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedDataUsage, setAcceptedDataUsage] = useState(false);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+
+  const isFormValid = acceptedTerms && acceptedDataUsage;
+
   const handleConnectStore = () => {
+    if (!isFormValid) {
+      setAttemptedSubmit(true);
+      return;
+    }
     // TODO: Replace with dynamic shop parameter from user input
     window.location.href = 'https://your-backend-domain.com/functions/v1/shopify_oauth_callback?shop=demo.myshopify.com';
   };
@@ -63,17 +76,67 @@ const ShopifyLogin: React.FC = () => {
               Unlock powerful AI analytics tailored specifically for your Shopify store
             </p>
           </div>
+
+          {/* New checkbox section */}
+          <div className="w-full mt-6 space-y-3">
+            <div className="flex items-start space-x-2">
+              <Checkbox 
+                id="terms" 
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                className="mt-1"
+              />
+              <label 
+                htmlFor="terms" 
+                className="text-sm text-slate-600 cursor-pointer leading-tight"
+              >
+                I accept the <Link to="/terms" className="text-shopify-primary hover:underline">Terms of Use</Link> and <Link to="/privacy" className="text-shopify-primary hover:underline">Privacy Policy</Link>
+              </label>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <Checkbox 
+                id="data-usage" 
+                checked={acceptedDataUsage}
+                onCheckedChange={(checked) => setAcceptedDataUsage(checked === true)} 
+                className="mt-1"
+              />
+              <label 
+                htmlFor="data-usage" 
+                className="text-sm text-slate-600 cursor-pointer leading-tight"
+              >
+                I acknowledge that analytics and personal data may be used for insight generation
+              </label>
+            </div>
+
+            {attemptedSubmit && !isFormValid && (
+              <div className="flex items-center text-amber-600 text-sm mt-2">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                <span>Please accept both terms to continue</span>
+              </div>
+            )}
+          </div>
         </CardContent>
         
-        <CardFooter className="relative z-10">
-          <Button 
-            className="w-full bg-gradient-to-r from-shopify-primary to-shopify-secondary hover:from-shopify-secondary hover:to-shopify-primary transition-all duration-300 shadow-md"
-            size="lg"
-            onClick={handleConnectStore}
-          >
-            Connect your Shopify Store
-            <ArrowRight className="ml-2 h-5 w-5 animate-pulse" />
-          </Button>
+        <CardFooter className="relative z-10 mt-4">
+          <Tooltip open={attemptedSubmit && !isFormValid}>
+            <TooltipTrigger asChild>
+              <div className="w-full">
+                <Button 
+                  className="w-full bg-gradient-to-r from-shopify-primary to-shopify-secondary hover:from-shopify-secondary hover:to-shopify-primary transition-all duration-300 shadow-md disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:from-shopify-primary disabled:hover:to-shopify-secondary"
+                  size="lg"
+                  onClick={handleConnectStore}
+                  disabled={!isFormValid}
+                >
+                  Connect your Shopify Store
+                  <ArrowRight className={`ml-2 h-5 w-5 ${isFormValid ? "animate-pulse" : ""}`} />
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="bg-amber-50 text-amber-700 border border-amber-200">
+              Please accept both terms to continue
+            </TooltipContent>
+          </Tooltip>
         </CardFooter>
       </Card>
       
