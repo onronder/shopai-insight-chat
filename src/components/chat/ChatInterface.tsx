@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -15,10 +16,20 @@ interface Message {
   timestamp: Date;
 }
 
-const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+}
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  isLoading = false,
+  isError = false,
+  onRetry
+}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
 
   const handleSendMessage = async () => {
@@ -35,7 +46,7 @@ const ChatInterface: React.FC = () => {
     // Add user message to state
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setIsLoading(true);
+    setIsSending(true);
 
     try {
       // Simulate API call to GPT backend
@@ -58,7 +69,7 @@ const ChatInterface: React.FC = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   };
 
@@ -68,6 +79,46 @@ const ChatInterface: React.FC = () => {
       handleSendMessage();
     }
   };
+
+  if (isLoading) {
+    return (
+      <Card className="flex flex-col h-[600px]">
+        <CardHeader>
+          <CardTitle>
+            <Skeleton className="h-6 w-36" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col">
+          <div className="flex-1 space-y-4">
+            <Skeleton className="h-16 w-3/4" />
+            <Skeleton className="h-16 w-1/2 ml-auto" />
+            <Skeleton className="h-16 w-2/3" />
+          </div>
+          <div className="mt-auto pt-4">
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card className="flex flex-col h-[600px]">
+        <CardHeader>
+          <CardTitle>AI Assistant</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex items-center justify-center">
+          <ErrorState
+            title="Unable to load conversation"
+            description="There was a problem connecting to the assistant. Please try again."
+            retryLabel="Reconnect"
+            onRetry={onRetry}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -102,7 +153,7 @@ const ChatInterface: React.FC = () => {
               </div>
             ))
           )}
-          {isLoading && (
+          {isSending && (
             <div className="bg-muted p-3 rounded-lg mr-12 space-y-2">
               <Skeleton className="h-4 w-2/3" />
               <Skeleton className="h-4 w-1/2" />
@@ -116,11 +167,11 @@ const ChatInterface: React.FC = () => {
             onKeyDown={handleKeyDown}
             placeholder="Ask about your business data..."
             className="flex-1"
-            disabled={isLoading}
+            disabled={isSending}
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isSending}
             size="icon"
           >
             <Send className="h-4 w-4" />

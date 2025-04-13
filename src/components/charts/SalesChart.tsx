@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { useQuery } from '@tanstack/react-query';
 
 // Mock data - to be replaced with Supabase data
@@ -18,11 +19,11 @@ const mockSalesData = [
 
 const SalesChart: React.FC = () => {
   // Mock query - would connect to Supabase in production
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['salesData'],
     queryFn: async () => {
       // Simulate API call
-      return new Promise<typeof mockSalesData>((resolve) => {
+      return new Promise<typeof mockSalesData>((resolve, reject) => {
         setTimeout(() => {
           resolve(mockSalesData);
         }, 1000);
@@ -45,7 +46,25 @@ const SalesChart: React.FC = () => {
     );
   }
 
-  if (isError || !data) {
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Sales Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center min-h-[300px]">
+          <ErrorState 
+            title="Could not load sales data"
+            description="There was an error loading the sales metrics."
+            retryLabel="Try again"
+            onRetry={() => refetch()}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data || data.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -53,10 +72,8 @@ const SalesChart: React.FC = () => {
         </CardHeader>
         <CardContent className="flex justify-center items-center min-h-[300px]">
           <EmptyState 
-            title="Could not load sales data"
-            description="There was an error loading the sales metrics."
-            actionLabel="Try again"
-            onAction={() => window.location.reload()}
+            title="No sales data available"
+            description="We'll show insights once sales data becomes available."
           />
         </CardContent>
       </Card>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,10 +6,8 @@ import { BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, R
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
-// TODO: Replace static or placeholder content with live data
-
-// TODO: Replace with API call to fetch analytics data from backend
 const salesData = [
   { name: "Jan", total: 2400, net: 2000, refunds: 400, tax: 200 },
   { name: "Feb", total: 1398, net: 1100, refunds: 298, tax: 150 },
@@ -20,7 +17,6 @@ const salesData = [
   { name: "Jun", total: 3800, net: 3300, refunds: 500, tax: 380 },
 ];
 
-// TODO: Replace with API call to fetch funnel data from backend
 const funnelData = [
   { name: "Sessions", value: 10000 },
   { name: "Cart", value: 3000 },
@@ -53,14 +49,22 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 const AnalyticsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
-  // TODO: Replace with actual API data loading and error handling
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setHasError(false);
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  };
 
   if (loading) {
     return (
@@ -80,6 +84,21 @@ const AnalyticsPage: React.FC = () => {
             <Skeleton className="h-80" />
             <Skeleton className="h-80" />
           </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <ErrorState
+            title="Unable to load analytics data"
+            description="There was a problem retrieving your analytics data. Please try again."
+            retryLabel="Refresh Data"
+            onRetry={handleRetry}
+          />
         </div>
       </AppLayout>
     );

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -7,12 +6,12 @@ import { useStoreData } from "@/hooks/useStoreData";
 import { ChartWrapper } from "@/components/charts/ChartWrapper";
 import { LoadingState } from "@/components/common/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { CHART_COLORS } from "@/utils/constants";
 import { formatCurrency } from "@/utils/formatters";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// TODO: Replace static or placeholder content with live data
 const statsData = [
   {
     title: "Total Revenue",
@@ -44,7 +43,6 @@ const statsData = [
   },
 ];
 
-// TODO: Replace with API call to fetch sales data
 const salesData = [
   { name: "Jan", sales: 4000, target: 4400 },
   { name: "Feb", sales: 3000, target: 3800 },
@@ -54,7 +52,6 @@ const salesData = [
   { name: "Jun", sales: 9500, target: 6000 },
 ];
 
-// TODO: Replace with API call to fetch top product data
 const topProductsData = [
   { name: "Organic Cotton T-Shirt", value: 21 },
   { name: "Premium Yoga Mat", value: 18 },
@@ -64,7 +61,6 @@ const topProductsData = [
   { name: "Others", value: 25 },
 ];
 
-// TODO: Replace with API call to fetch customer acquisition data
 const customerAcquisitionData = [
   { name: "Social Media", value: 30 },
   { name: "Direct", value: 25 },
@@ -73,7 +69,6 @@ const customerAcquisitionData = [
   { name: "Email", value: 10 },
 ];
 
-// TODO: Replace with API call to fetch recent activities
 const recentActivitiesData = [
   {
     id: 1,
@@ -109,24 +104,30 @@ const recentActivitiesData = [
 
 const Dashboard: React.FC = () => {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
-  // TODO: Replace with real API calls using the useStoreData hook
-  const { data: stats, isLoading: statsLoading } = useStoreData(statsData);
-  const { data: sales, isLoading: salesLoading } = useStoreData(salesData);
-  const { data: topProducts, isLoading: productsLoading } = useStoreData(topProductsData);
-  const { data: customerAcquisition, isLoading: acquisitionLoading } = useStoreData(customerAcquisitionData);
-  const { data: recentActivities, isLoading: activitiesLoading } = useStoreData(recentActivitiesData);
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useStoreData(statsData);
+  const { data: sales, isLoading: salesLoading, refetch: refetchSales } = useStoreData(salesData);
+  const { data: topProducts, isLoading: productsLoading, refetch: refetchProducts } = useStoreData(topProductsData);
+  const { data: customerAcquisition, isLoading: acquisitionLoading, refetch: refetchAcquisition } = useStoreData(customerAcquisitionData);
+  const { data: recentActivities, isLoading: activitiesLoading, refetch: refetchActivities } = useStoreData(recentActivitiesData);
 
-  // TODO: Replace with actual API data loading and error handling
+  const refetchAllData = () => {
+    refetchStats();
+    refetchSales();
+    refetchProducts();
+    refetchAcquisition();
+    refetchActivities();
+    setHasError(false);
+  };
+
   React.useEffect(() => {
-    // Simulate initial data loading
     const timer = setTimeout(() => {
       setIsFirstLoad(false);
     }, 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Full page loading state
   if (isFirstLoad) {
     return (
       <AppLayout>
@@ -151,7 +152,21 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Empty state when no data available
+  if (hasError) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <ErrorState
+            title="Unable to load dashboard data"
+            description="There was a problem loading your dashboard data. Please try again."
+            retryLabel="Refresh Dashboard"
+            onRetry={refetchAllData}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
   const hasNoData = !stats?.length && !sales?.length && !topProducts?.length && 
                     !customerAcquisition?.length && !recentActivities?.length;
   
@@ -178,7 +193,6 @@ const Dashboard: React.FC = () => {
           <p className="text-muted-foreground">Welcome to ShopAI Insight dashboard</p>
         </div>
 
-        {/* Stats Grid */}
         {statsLoading ? (
           <LoadingState message="Loading dashboard statistics..." />
         ) : (
@@ -209,9 +223,7 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Sales Chart */}
           <ChartWrapper
             title="Sales Overview"
             description="Sales vs target for the last 6 months"
@@ -234,7 +246,6 @@ const Dashboard: React.FC = () => {
             </div>
           </ChartWrapper>
 
-          {/* Top Products */}
           <ChartWrapper
             title="Top Products"
             description="Most sold products by percentage"
@@ -264,7 +275,6 @@ const Dashboard: React.FC = () => {
             </div>
           </ChartWrapper>
 
-          {/* Customer Acquisition */}
           <ChartWrapper
             title="Customer Acquisition"
             description="How customers find your store"
@@ -288,7 +298,6 @@ const Dashboard: React.FC = () => {
             </div>
           </ChartWrapper>
 
-          {/* Recent Activity */}
           <ChartWrapper
             title="Recent Activity"
             description="Latest updates from your store"

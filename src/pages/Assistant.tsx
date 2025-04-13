@@ -1,8 +1,8 @@
-
 import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { ConversationList } from "@/components/assistant/ConversationList";
 import { ConversationHeader } from "@/components/assistant/ConversationHeader";
 import { MessageDisplay } from "@/components/assistant/MessageDisplay";
@@ -16,11 +16,13 @@ const AssistantPage: React.FC = () => {
     activeConversation,
     messageInput,
     loading,
+    hasError,
     setMessageInput,
     handleNewConversation,
     handleSendMessage,
     handleSelectConversation,
     handleSelectSuggestion,
+    refetchConversations
   } = useConversations();
 
   if (loading) {
@@ -31,6 +33,21 @@ const AssistantPage: React.FC = () => {
             <Skeleton className="w-full md:w-64 h-full" />
             <Skeleton className="flex-1 h-full" />
           </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <ErrorState
+            title="Unable to load assistant data"
+            description="There was a problem loading your conversations. Please try again."
+            retryLabel="Refresh Data"
+            onRetry={refetchConversations}
+          />
         </div>
       </AppLayout>
     );

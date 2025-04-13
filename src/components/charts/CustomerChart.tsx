@@ -11,10 +11,13 @@ import {
 } from "recharts";
 import { LoadingState } from "@/components/common/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface CustomerChartProps {
   data?: Array<{name: string, value: number}>;
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
 // Default colors for the chart
@@ -29,7 +32,9 @@ const COLORS = [
  */
 export const CustomerChart: React.FC<CustomerChartProps> = ({ 
   data,
-  isLoading = false
+  isLoading = false,
+  isError = false,
+  onRetry
 }) => {
   // TODO: Replace with data from API or Supabase backend
   const defaultData = [
@@ -52,6 +57,13 @@ export const CustomerChart: React.FC<CustomerChartProps> = ({
       <CardContent>
         {isLoading ? (
           <LoadingState message="Loading customer segments..." />
+        ) : isError ? (
+          <ErrorState 
+            title="Failed to load segments"
+            description="There was an error loading customer segment data."
+            retryLabel="Try again"
+            onRetry={onRetry}
+          />
         ) : isEmpty ? (
           <EmptyState 
             title="No Segment Data" 

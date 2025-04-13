@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 // TODO: Replace static or placeholder content with live data
 
@@ -31,6 +31,7 @@ import { BestCustomers } from "@/components/customers/BestCustomers";
 const CustomersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   // TODO: Replace with actual API data loading and error handling
   React.useEffect(() => {
@@ -39,6 +40,15 @@ const CustomersPage: React.FC = () => {
     }, 1000);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setHasError(false);
+    // Simulate data refetch
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  };
 
   // Loading state
   if (loading) {
@@ -59,6 +69,22 @@ const CustomersPage: React.FC = () => {
             <Skeleton className="h-64" />
             <Skeleton className="h-64" />
           </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Error state
+  if (hasError) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <ErrorState
+            title="Unable to load customer data"
+            description="There was a problem loading your customer data. Please try again."
+            retryLabel="Refresh Data"
+            onRetry={handleRetry}
+          />
         </div>
       </AppLayout>
     );
@@ -115,23 +141,18 @@ const CustomersPage: React.FC = () => {
             </Tabs>
           </CardHeader>
           <CardContent>
-            {/* TODO: Replace with dynamic data fetched from backend */}
             <CustomerSegmentsTable customers={customers} />
           </CardContent>
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* TODO: Replace with dynamic LTV data from backend */}
           <LtvDistributionChart data={ltvData} />
-          {/* TODO: Replace with dynamic signup data from backend */}
           <RecentSignups recentSignups={recentSignups} />
-          {/* TODO: Replace with dynamic churn data from backend */}
           <ChurnForecastChart 
             actualData={actualChurnData}
             projectedData={projectedChurnData}
             combinedData={churnData}
           />
-          {/* TODO: Replace with dynamic best customers data from backend */}
           <BestCustomers customers={bestCustomers} />
         </div>
       </div>

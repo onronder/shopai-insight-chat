@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { OrdersHeader } from "@/components/orders/OrdersHeader";
 import { OrderVolumeChart } from "@/components/orders/OrderVolumeChart";
 import { OrderStatusChart } from "@/components/orders/OrderStatusChart";
@@ -21,11 +22,21 @@ import {
 const OrdersPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [timeframe, setTimeframe] = useState("last14");
   
   React.useEffect(() => {
     setLoading(false);
   }, []);
+  
+  const handleRetry = () => {
+    setLoading(true);
+    setHasError(false);
+    // Simulate data refetch
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  };
   
   if (loading) {
     return (
@@ -45,6 +56,21 @@ const OrdersPage: React.FC = () => {
             <Skeleton className="h-64" />
             <Skeleton className="h-64" />
           </div>
+        </div>
+      </AppLayout>
+    );
+  }
+  
+  if (hasError) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <ErrorState
+            title="Unable to load order data"
+            description="There was a problem loading your order data. Please try again."
+            retryLabel="Refresh Data"
+            onRetry={handleRetry}
+          />
         </div>
       </AppLayout>
     );

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { ProductsHeader } from "@/components/products/ProductsHeader";
 import { ProductVolumeChart } from "@/components/products/ProductVolumeChart";
 import { InventoryRiskTable } from "@/components/products/InventoryRiskTable";
@@ -20,11 +21,21 @@ import {
 const ProductsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [timeframe, setTimeframe] = useState("last30");
   
   React.useEffect(() => {
     setLoading(false);
   }, []);
+  
+  const handleRetry = () => {
+    setLoading(true);
+    setHasError(false);
+    // Simulate data refetch
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  };
   
   if (loading) {
     return (
@@ -44,6 +55,21 @@ const ProductsPage: React.FC = () => {
             <Skeleton className="h-64" />
             <Skeleton className="h-64" />
           </div>
+        </div>
+      </AppLayout>
+    );
+  }
+  
+  if (hasError) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8">
+          <ErrorState
+            title="Unable to load product data"
+            description="There was a problem loading your product data. Please try again."
+            retryLabel="Refresh Data"
+            onRetry={handleRetry}
+          />
         </div>
       </AppLayout>
     );
