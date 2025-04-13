@@ -14,6 +14,7 @@ import SettingsPage from "./pages/Settings";
 import HelpPage from "./pages/Help";
 import Welcome from "./pages/Welcome";
 import NotFound from "./pages/NotFound";
+import ShopifyLogin from "./pages/ShopifyLogin";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <Routes>
+          <Route path="/shopify-login" element={<ShopifyLogin />} />
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
