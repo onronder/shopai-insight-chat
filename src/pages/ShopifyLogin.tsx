@@ -18,11 +18,21 @@ const ShopifyLogin: React.FC = () => {
 
   const isFormValid = acceptedTerms && acceptedDataUsage;
 
+  // Function to log consent data
+  async function logConsent() {
+    // TODO: Replace this with actual Supabase insert call
+    console.log("✅ Consent accepted - implement Supabase insert here.");
+  }
+
   const handleConnectStore = () => {
     if (!isFormValid) {
       setAttemptedSubmit(true);
       return;
     }
+    
+    // Log consent before redirecting
+    logConsent();
+    
     // TODO: Replace with dynamic shop parameter from user input
     window.location.href = 'https://your-backend-domain.com/functions/v1/shopify_oauth_callback?shop=demo.myshopify.com';
   };
