@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,66 +8,27 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-
-const salesData = [
-  { name: "Jan", total: 2400, net: 2000, refunds: 400, tax: 200 },
-  { name: "Feb", total: 1398, net: 1100, refunds: 298, tax: 150 },
-  { name: "Mar", total: 9800, net: 8900, refunds: 900, tax: 650 },
-  { name: "Apr", total: 3908, net: 3500, refunds: 408, tax: 320 },
-  { name: "May", total: 4800, net: 4200, refunds: 600, tax: 450 },
-  { name: "Jun", total: 3800, net: 3300, refunds: 500, tax: 380 },
-];
-
-const funnelData = [
-  { name: "Sessions", value: 10000 },
-  { name: "Cart", value: 3000 },
-  { name: "Checkout", value: 1800 },
-  { name: "Purchase", value: 1000 },
-];
-
-const revenueByChannelData = [
-  { name: "Online Store", value: 65 },
-  { name: "POS", value: 15 },
-  { name: "Mobile App", value: 10 },
-  { name: "Social", value: 10 },
-];
-
-const customerTypeData = [
-  { name: "New Customers", value: 65 },
-  { name: "Repeat Customers", value: 35 },
-];
-
-const topCountriesData = [
-  { name: "United States", value: 145 },
-  { name: "United Kingdom", value: 87 },
-  { name: "Canada", value: 62 },
-  { name: "Australia", value: 43 },
-  { name: "Germany", value: 30 },
-];
-
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 
 const AnalyticsPage: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [hasData, setHasData] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const {
+    isLoading,
+    error,
+    hasData,
+    timeframe,
+    view,
+    setTimeframe,
+    setView,
+    refetch,
+    salesData,
+    funnelData,
+    revenueByChannelData,
+    customerTypeData,
+    topCountriesData,
+    COLORS
+  } = useAnalyticsData();
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleRetry = () => {
-    setLoading(true);
-    setHasError(false);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <AppLayout>
         <div className="container mx-auto space-y-6">
@@ -89,7 +51,7 @@ const AnalyticsPage: React.FC = () => {
     );
   }
 
-  if (hasError) {
+  if (error) {
     return (
       <AppLayout>
         <div className="container mx-auto py-8">
@@ -97,7 +59,7 @@ const AnalyticsPage: React.FC = () => {
             title="Unable to load analytics data"
             description="There was a problem retrieving your analytics data. Please try again."
             retryLabel="Refresh Data"
-            onRetry={handleRetry}
+            onRetry={refetch}
           />
         </div>
       </AppLayout>
@@ -127,7 +89,7 @@ const AnalyticsPage: React.FC = () => {
             <h2 className="text-3xl font-bold tracking-tight">Analytics Overview</h2>
             <p className="text-muted-foreground">Your store performance at a glance</p>
           </div>
-          <Select defaultValue="last30">
+          <Select value={timeframe} onValueChange={setTimeframe}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select a timeframe" />
             </SelectTrigger>
@@ -144,7 +106,7 @@ const AnalyticsPage: React.FC = () => {
           <CardHeader>
             <CardTitle>Sales Overview</CardTitle>
             <CardDescription>Daily, weekly, and monthly sales trends</CardDescription>
-            <Tabs defaultValue="daily">
+            <Tabs value={view} onValueChange={setView}>
               <TabsList>
                 <TabsTrigger value="daily">Daily</TabsTrigger>
                 <TabsTrigger value="weekly">Weekly</TabsTrigger>

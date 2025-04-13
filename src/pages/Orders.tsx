@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -10,35 +10,25 @@ import { OrderStatusChart } from "@/components/orders/OrderStatusChart";
 import { AverageOrderValueChart } from "@/components/orders/AverageOrderValueChart";
 import { DiscountedOrdersList } from "@/components/orders/DiscountedOrdersList";
 import { FulfillmentDelaysChart } from "@/components/orders/FulfillmentDelaysChart";
-import { 
-  orderVolumeData, 
-  orderStatusData, 
-  COLORS, 
-  aovData, 
-  discountedOrdersData, 
-  fulfillmentDelaysData 
-} from "@/data/order-data";
+import { useOrdersData } from "@/hooks/useOrdersData";
 
 const OrdersPage: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [hasData, setHasData] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [timeframe, setTimeframe] = useState("last14");
+  const {
+    isLoading,
+    hasData,
+    hasError,
+    timeframe,
+    setTimeframe,
+    handleRetry,
+    orderVolumeData,
+    orderStatusData,
+    colors,
+    aovData,
+    discountedOrdersData,
+    fulfillmentDelaysData
+  } = useOrdersData();
   
-  React.useEffect(() => {
-    setLoading(false);
-  }, []);
-  
-  const handleRetry = () => {
-    setLoading(true);
-    setHasError(false);
-    // Simulate data refetch
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  };
-  
-  if (loading) {
+  if (isLoading) {
     return (
       <AppLayout>
         <div className="container mx-auto space-y-6">
@@ -102,7 +92,7 @@ const OrdersPage: React.FC = () => {
         <OrderVolumeChart data={orderVolumeData} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <OrderStatusChart data={orderStatusData} colors={COLORS} />
+          <OrderStatusChart data={orderStatusData} colors={colors} />
           <AverageOrderValueChart data={aovData} />
           <DiscountedOrdersList data={discountedOrdersData} />
           <FulfillmentDelaysChart data={fulfillmentDelaysData} />

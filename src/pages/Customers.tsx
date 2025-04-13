@@ -1,57 +1,38 @@
-import React, { useState } from "react";
+
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-
-// TODO: Replace static or placeholder content with live data
-
-// TODO: Replace these imports with API calls to fetch customer data from backend
-import { 
-  customers, 
-  ltvData, 
-  recentSignups, 
-  actualChurnData,
-  projectedChurnData,
-  churnData,
-  bestCustomers
-} from "@/data/customer-data";
-
-// Import components
 import { CustomerSegmentsTable } from "@/components/customers/CustomerSegmentsTable";
 import { LtvDistributionChart } from "@/components/customers/LtvDistributionChart";
 import { RecentSignups } from "@/components/customers/RecentSignups";
 import { ChurnForecastChart } from "@/components/customers/ChurnForecastChart";
 import { BestCustomers } from "@/components/customers/BestCustomers";
+import { useCustomersData } from "@/hooks/useCustomersData";
 
 const CustomersPage: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [hasData, setHasData] = useState(true);
-  const [hasError, setHasError] = useState(false);
-
-  // TODO: Replace with actual API data loading and error handling
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleRetry = () => {
-    setLoading(true);
-    setHasError(false);
-    // Simulate data refetch
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  };
+  const {
+    isLoading,
+    hasData,
+    hasError,
+    segment,
+    setSegment,
+    handleRetry,
+    customers,
+    ltvData,
+    recentSignups,
+    actualChurnData,
+    projectedChurnData,
+    churnData,
+    bestCustomers
+  } = useCustomersData();
 
   // Loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <AppLayout>
         <div className="container mx-auto space-y-6">
@@ -114,7 +95,7 @@ const CustomersPage: React.FC = () => {
             <h2 className="text-3xl font-bold tracking-tight">Customer Intelligence</h2>
             <p className="text-muted-foreground">Analyze your customer base and behavior patterns</p>
           </div>
-          <Select defaultValue="all">
+          <Select value={segment} onValueChange={setSegment}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by segment" />
             </SelectTrigger>

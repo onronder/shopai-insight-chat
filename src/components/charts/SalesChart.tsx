@@ -2,7 +2,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingState } from '@/components/common/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { useQuery } from '@tanstack/react-query';
@@ -35,12 +35,10 @@ const SalesChart: React.FC = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>
-            <Skeleton className="h-8 w-1/2" />
-          </CardTitle>
+          <CardTitle>Sales Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+          <LoadingState message="Loading sales data..." />
         </CardContent>
       </Card>
     );

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -10,34 +10,24 @@ import { InventoryRiskTable } from "@/components/products/InventoryRiskTable";
 import { ReturnRateChart } from "@/components/products/ReturnRateChart";
 import { VariantSalesChart } from "@/components/products/VariantSalesChart";
 import { ProductLifecycleChart } from "@/components/products/ProductLifecycleChart";
-import { 
-  topSellingProductsData, 
-  inventoryAtRiskData,
-  returnRateData,
-  variantSalesData,
-  productLifecycleData
-} from "@/data/product-data";
+import { useProductsData } from "@/hooks/useProductsData";
 
 const ProductsPage: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [hasData, setHasData] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [timeframe, setTimeframe] = useState("last30");
+  const {
+    isLoading,
+    hasData,
+    hasError,
+    timeframe,
+    setTimeframe,
+    handleRetry,
+    topSellingProductsData,
+    inventoryAtRiskData,
+    returnRateData,
+    variantSalesData,
+    productLifecycleData
+  } = useProductsData();
   
-  React.useEffect(() => {
-    setLoading(false);
-  }, []);
-  
-  const handleRetry = () => {
-    setLoading(true);
-    setHasError(false);
-    // Simulate data refetch
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  };
-  
-  if (loading) {
+  if (isLoading) {
     return (
       <AppLayout>
         <div className="container mx-auto space-y-6">

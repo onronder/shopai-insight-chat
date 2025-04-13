@@ -9,23 +9,35 @@ export function useStoreData<T>(initialData: T, delay = 1000) {
   const [data, setData] = useState<T>(initialData);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [retryCounter, setRetryCounter] = useState(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
       try {
         // TODO: Replace this with real API fetch from Supabase/backend
-        setData(initialData);
-        setIsLoading(false);
+        const timer = setTimeout(() => {
+          setData(initialData);
+          setIsLoading(false);
+        }, delay);
+        
+        return () => clearTimeout(timer);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Unknown error occurred'));
         setIsLoading(false);
       }
-    }, delay);
+    };
+    
+    fetchData();
+  }, [initialData, delay, retryCounter]);
 
-    return () => clearTimeout(timer);
-  }, [initialData, delay]);
+  const refetch = () => {
+    setRetryCounter(prev => prev + 1);
+  };
 
-  return { data, isLoading, error, setData };
+  return { data, isLoading, error, refetch, setData };
 }
 
 /**

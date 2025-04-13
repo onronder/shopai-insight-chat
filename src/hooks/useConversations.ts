@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConversationType, MessageType } from "@/components/assistant/ConversationList";
 
 // TODO: Replace with API call to fetch conversation history from backend
@@ -33,14 +33,34 @@ export const useConversations = () => {
   const [activeConversation, setActiveConversation] = useState<ConversationType | null>(sampleConversations[0]);
   const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryCounter, setRetryCounter] = useState(0);
 
-  // Simulate loading state
-  useState(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  });
+  // Simulate data loading and handle errors
+  useEffect(() => {
+    const fetchConversations = () => {
+      setLoading(true);
+      setHasError(false);
+      
+      // TODO: Replace with actual API call to fetch conversations
+      const timer = setTimeout(() => {
+        try {
+          // Simulate successful data fetch
+          setConversations(sampleConversations);
+          setActiveConversation(sampleConversations[0]);
+          setLoading(false);
+        } catch (error) {
+          console.error("Error fetching conversations:", error);
+          setHasError(true);
+          setLoading(false);
+        }
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    };
+    
+    fetchConversations();
+  }, [retryCounter]);
 
   const handleNewConversation = () => {
     // TODO: Implement API integration for conversation creation
@@ -99,15 +119,21 @@ export const useConversations = () => {
     setMessageInput(suggestion);
   };
 
+  const refetchConversations = () => {
+    setRetryCounter(prev => prev + 1);
+  };
+
   return {
     conversations,
     activeConversation,
     messageInput,
     loading,
+    hasError,
     setMessageInput,
     handleNewConversation,
     handleSendMessage,
     handleSelectConversation,
     handleSelectSuggestion,
+    refetchConversations
   };
 };
