@@ -14,18 +14,12 @@ import { useOrdersData } from "@/hooks/useOrdersData";
 
 const OrdersPage: React.FC = () => {
   const {
+    data,
     isLoading,
-    hasData,
-    hasError,
+    error,
+    refetch,
     timeframe,
-    setTimeframe,
-    handleRetry,
-    orderVolumeData,
-    orderStatusData,
-    colors,
-    aovData,
-    discountedOrdersData,
-    fulfillmentDelaysData
+    setTimeframe
   } = useOrdersData();
   
   if (isLoading) {
@@ -51,7 +45,7 @@ const OrdersPage: React.FC = () => {
     );
   }
   
-  if (hasError) {
+  if (error) {
     return (
       <AppLayout>
         <div className="container mx-auto py-8">
@@ -59,14 +53,14 @@ const OrdersPage: React.FC = () => {
             title="Unable to load order data"
             description="There was a problem loading your order data. Please try again."
             retryLabel="Refresh Data"
-            onRetry={handleRetry}
+            onRetry={refetch}
           />
         </div>
       </AppLayout>
     );
   }
   
-  if (!hasData) {
+  if (!data || !data.orderVolumeData.length) {
     return (
       <AppLayout>
         <div className="container mx-auto py-8">
@@ -89,13 +83,13 @@ const OrdersPage: React.FC = () => {
           onTimeframeChange={setTimeframe} 
         />
 
-        <OrderVolumeChart data={orderVolumeData} />
+        <OrderVolumeChart data={data.orderVolumeData} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <OrderStatusChart data={orderStatusData} colors={colors} />
-          <AverageOrderValueChart data={aovData} />
-          <DiscountedOrdersList data={discountedOrdersData} />
-          <FulfillmentDelaysChart data={fulfillmentDelaysData} />
+          <OrderStatusChart data={data.orderStatusData} colors={data.colors} />
+          <AverageOrderValueChart data={data.aovData} />
+          <DiscountedOrdersList data={data.discountedOrdersData} />
+          <FulfillmentDelaysChart data={data.fulfillmentDelaysData} />
         </div>
       </div>
     </AppLayout>

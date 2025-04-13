@@ -16,11 +16,10 @@ import {
 export const useOrdersData = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [hasData, setHasData] = useState(true);
   const [timeframe, setTimeframe] = useState("last14");
   const [retryCounter, setRetryCounter] = useState(0);
   
-  const [data, setData] = useState({
+  const [orderData, setOrderData] = useState({
     orderVolumeData,
     orderStatusData,
     colors: COLORS,
@@ -40,7 +39,6 @@ export const useOrdersData = () => {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         
         // Mock data is already set in state initialization
-        setHasData(true);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching orders data:", err);
@@ -57,12 +55,11 @@ export const useOrdersData = () => {
   };
   
   return {
+    data: orderData,
     isLoading,
-    hasData,
     error,
-    timeframe,
-    setTimeframe,
     refetch,
-    ...data
+    timeframe,
+    setTimeframe
   };
 };
