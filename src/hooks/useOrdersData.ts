@@ -15,7 +15,7 @@ import {
  */
 export const useOrdersData = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const [hasData, setHasData] = useState(true);
   const [timeframe, setTimeframe] = useState("last14");
   const [retryCounter, setRetryCounter] = useState(0);
@@ -32,7 +32,7 @@ export const useOrdersData = () => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      setHasError(false);
+      setError(null);
       
       try {
         // TODO: Replace with actual API calls to backend
@@ -44,7 +44,7 @@ export const useOrdersData = () => {
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching orders data:", err);
-        setHasError(true);
+        setError(err instanceof Error ? err : new Error("Unknown error occurred"));
         setIsLoading(false);
       }
     };
@@ -52,17 +52,17 @@ export const useOrdersData = () => {
     fetchData();
   }, [retryCounter, timeframe]);
   
-  const handleRetry = () => {
+  const refetch = () => {
     setRetryCounter(prev => prev + 1);
   };
   
   return {
     isLoading,
     hasData,
-    hasError,
+    error,
     timeframe,
     setTimeframe,
-    handleRetry,
+    refetch,
     ...data
   };
 };

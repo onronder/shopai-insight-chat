@@ -1,9 +1,9 @@
 
 import React from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { ModeToggle } from "./ModeToggle";
 import { Button } from "@/components/ui/button";
-import { Settings, User, HelpCircle, LogOut, ChevronDown } from "lucide-react";
+import { Settings, User, HelpCircle, LogOut, ChevronDown, Store } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
 
 export const Header: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Function to get page title based on current route
   const getPageTitle = () => {
@@ -27,6 +30,28 @@ export const Header: React.FC = () => {
     if (path.includes("/settings")) return "Settings";
     if (path.includes("/help")) return "Help & Support";
     return "Dashboard";
+  };
+
+  const handleDisconnectStore = async () => {
+    // TODO: Replace with actual API call when backend is implemented
+    try {
+      // Mock API call for disconnecting store
+      // await fetch('/api/disconnect', { method: 'POST' });
+      
+      toast({
+        title: "Store disconnected",
+        description: "Your store has been successfully disconnected",
+      });
+      
+      // Redirect to login page
+      navigate('/login');
+    } catch (error) {
+      toast({
+        title: "Error disconnecting store",
+        description: "There was a problem disconnecting your store. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -43,10 +68,10 @@ export const Header: React.FC = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
               <User className="h-5 w-5" />
-              <span className="sr-only">Profile menu</span>
+              <span className="sr-only">Account menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56 rounded-xl">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link to="/settings" className="flex items-center cursor-pointer">
@@ -61,19 +86,17 @@ export const Header: React.FC = () => {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleDisconnectStore} className="text-red-500 focus:text-red-500">
+              <Store className="mr-2 h-4 w-4" />
+              <span>Disconnect Store</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
-        <Link to="/settings">
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-            <span className="sr-only">Settings</span>
-          </Button>
-        </Link>
       </div>
     </header>
   );

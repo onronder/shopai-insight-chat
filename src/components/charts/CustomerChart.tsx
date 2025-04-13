@@ -50,11 +50,11 @@ export const CustomerChart: React.FC<CustomerChartProps> = ({
   const isEmpty = !chartData || chartData.length === 0;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+      <CardHeader className="p-6 pb-2">
         <CardTitle>Customer Segments</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6 pt-0">
         {isLoading ? (
           <LoadingState message="Loading customer segments..." />
         ) : isError ? (

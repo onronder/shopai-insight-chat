@@ -19,6 +19,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'system-ui', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -64,11 +67,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				shopify: {
-					primary: '#008060',
+					primary: '#16a34a', // Updated to match CTA green
 					secondary: '#004c3f',
 					accent: '#95BF47',
 					light: '#f3f3f3',
-					muted: '#6b7177',
+					muted: '#8E9196', // Updated to match muted-gray
 				},
 			},
 			borderRadius: {

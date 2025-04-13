@@ -45,5 +45,7 @@ export function useStoreData<T>(initialData: T, delay = 1000) {
  */
 export const storeContext = {
   shopDomain: "mydemostore.myshopify.com",
+  // Store branding
+  primaryColor: "#16a34a", // Updated to match CTA green
   // TODO: Add more store context properties as needed
 };

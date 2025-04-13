@@ -28,21 +28,21 @@ const Dashboard: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="container mx-auto space-y-6">
+        <div className="container mx-auto space-y-6 py-6">
           <div className="flex flex-col gap-2">
             <Skeleton className="h-10 w-64" />
             <Skeleton className="h-4 w-40" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-28" />
+              <Skeleton key={i} className="h-28 rounded-2xl" />
             ))}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-80" />
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64" />
-            <Skeleton className="h-80" />
+            <Skeleton className="h-80 rounded-2xl" />
+            <Skeleton className="h-64 rounded-2xl" />
+            <Skeleton className="h-64 rounded-2xl" />
+            <Skeleton className="h-80 rounded-2xl" />
           </div>
         </div>
       </AppLayout>
@@ -81,15 +81,15 @@ const Dashboard: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="container mx-auto space-y-6">
+      <div className="container mx-auto space-y-6 py-6">
         <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Welcome to ShopAI Insight dashboard</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, index) => (
-            <Card key={index}>
+            <Card key={index} className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <stat.icon className="h-5 w-5 text-muted-foreground" />
@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Sales Overview</h3>
               <div className="h-[300px]">
@@ -133,7 +133,7 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Top Products</h3>
               <div className="h-[250px]">
@@ -160,7 +160,7 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Customer Acquisition</h3>
               <div className="h-[250px]">
@@ -181,7 +181,7 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
               <div className="space-y-6">

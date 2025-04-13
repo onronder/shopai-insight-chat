@@ -16,7 +16,7 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
     <ThemeProvider>
-      <div className="flex h-screen overflow-hidden bg-background dark:bg-background">
+      <div className="flex h-screen overflow-hidden bg-background dark:bg-background font-sans">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />

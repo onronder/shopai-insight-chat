@@ -32,8 +32,8 @@ export const ChartWrapper: React.FC<ChartWrapperProps> = ({
   skeletonHeight = 300,
 }) => {
   return (
-    <Card className={className}>
-      <CardHeader className={`${headerAction ? 'flex-row items-center justify-between space-y-0' : ''}`}>
+    <Card className={`rounded-2xl shadow-md hover:shadow-lg transition-shadow ${className}`}>
+      <CardHeader className={`p-6 ${headerAction ? 'flex-row items-center justify-between space-y-0' : ''}`}>
         <div>
           <CardTitle>{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
@@ -42,10 +42,10 @@ export const ChartWrapper: React.FC<ChartWrapperProps> = ({
           <div>{headerAction}</div>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6 pt-0">
         {isLoading ? (
           <div className="w-full space-y-2">
-            <Skeleton className={`w-full h-[${skeletonHeight}px]`} />
+            <Skeleton className={`w-full h-[${skeletonHeight}px] rounded-xl`} />
           </div>
         ) : isEmpty ? (
           <EmptyState 

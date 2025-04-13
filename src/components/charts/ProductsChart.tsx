@@ -45,12 +45,12 @@ export const ProductsChart: React.FC<ProductsChartProps> = ({
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="p-6 pb-2">
           <CardTitle>Top Selling Products</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-80 w-full" />
+        <CardContent className="p-6 pt-0">
+          <Skeleton className="h-80 w-full rounded-xl" />
         </CardContent>
       </Card>
     );
@@ -58,11 +58,11 @@ export const ProductsChart: React.FC<ProductsChartProps> = ({
 
   if (isError) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="p-6 pb-2">
           <CardTitle>Top Selling Products</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 pt-0">
           <ErrorState
             title="Failed to load product data"
             description="There was an error loading the top selling products."
@@ -76,11 +76,11 @@ export const ProductsChart: React.FC<ProductsChartProps> = ({
 
   if (isEmpty) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="p-6 pb-2">
           <CardTitle>Top Selling Products</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 pt-0">
           <EmptyState
             title="No product data"
             description="No product sales data is available yet."
@@ -91,11 +91,11 @@ export const ProductsChart: React.FC<ProductsChartProps> = ({
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+      <CardHeader className="p-6 pb-2">
         <CardTitle>Top Selling Products</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6 pt-0">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart

@@ -33,11 +33,11 @@ const SalesChart: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
+      <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="p-6">
           <CardTitle>Sales Overview</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 pt-0">
           <LoadingState message="Loading sales data..." />
         </CardContent>
       </Card>
@@ -46,11 +46,11 @@ const SalesChart: React.FC = () => {
 
   if (isError) {
     return (
-      <Card>
-        <CardHeader>
+      <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="p-6">
           <CardTitle>Sales Overview</CardTitle>
         </CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[300px]">
+        <CardContent className="p-6 pt-0 flex justify-center items-center min-h-[300px]">
           <ErrorState 
             title="Could not load sales data"
             description="There was an error loading the sales metrics."
@@ -64,11 +64,11 @@ const SalesChart: React.FC = () => {
 
   if (!data || data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
+      <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="p-6">
           <CardTitle>Sales Overview</CardTitle>
         </CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[300px]">
+        <CardContent className="p-6 pt-0 flex justify-center items-center min-h-[300px]">
           <EmptyState 
             title="No sales data available"
             description="We'll show insights once sales data becomes available."
@@ -79,11 +79,11 @@ const SalesChart: React.FC = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+      <CardHeader className="p-6">
         <CardTitle>Sales Overview</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6 pt-0">
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -91,7 +91,7 @@ const SalesChart: React.FC = () => {
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="sales" fill="#3b82f6" />
+              <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
