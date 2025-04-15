@@ -1,65 +1,90 @@
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 
-import { useState, useEffect } from 'react';
-import { 
-  orderVolumeData, 
-  orderStatusData, 
-  COLORS, 
-  aovData, 
-  discountedOrdersData, 
-  fulfillmentDelaysData 
-} from "@/data/order-data";
+export interface SalesOverTime {
+  name: string
+  sales: number
+}
 
-/**
- * Custom hook for fetching and managing orders data
- * TODO: Replace with real API integration when backend is implemented
- */
+export interface OrderStatus {
+  status: string
+  count: number
+}
+
+export interface FulfillmentDelay {
+  order_id: string
+  delay_days: number
+}
+
+export interface AvgOrderValue {
+  value: number
+  currency: string
+}
+
+export interface DiscountedOrder {
+  order_id: string
+  discount: number
+  customer: string
+  total: number
+}
+
+const getAuthHeaders = async () => {
+  const session = await supabase.auth.getSession()
+  const token = session.data?.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const fetcher = async (url: string) => {
+  const headers = await getAuthHeaders()
+  const res = await fetch(url, { headers })
+  if (!res.ok) throw new Error(`Failed to fetch ${url}`)
+  return res.json()
+}
+
 export const useOrdersData = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [timeframe, setTimeframe] = useState("last14");
-  const [retryCounter, setRetryCounter] = useState(0);
-  
-  const [orderData, setOrderData] = useState({
-    orderVolumeData,
-    orderStatusData,
-    colors: COLORS,
-    aovData,
-    discountedOrdersData,
-    fulfillmentDelaysData
-  });
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // TODO: Replace with actual API calls to backend
-        // Simulate API loading delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        // Mock data is already set in state initialization
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching orders data:", err);
-        setError(err instanceof Error ? err : new Error("Unknown error occurred"));
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [retryCounter, timeframe]);
-  
-  const refetch = () => {
-    setRetryCounter(prev => prev + 1);
-  };
-  
+  const sales = useQuery<SalesOverTime[]>({
+    queryKey: ["order_sales_over_time"],
+    queryFn: () => fetcher("/functions/v1/metrics_sales_over_time")
+  })
+
+  const statuses = useQuery<OrderStatus[]>({
+    queryKey: ["order_statuses"],
+    queryFn: () => fetcher("/functions/v1/metrics_order_statuses")
+  })
+
+  const fulfillment = useQuery<FulfillmentDelay[]>({
+    queryKey: ["fulfillment_delays"],
+    queryFn: () => fetcher("/functions/v1/metrics_fulfillment_delays")
+  })
+
+  const aov = useQuery<AvgOrderValue>({
+    queryKey: ["avg_order_value"],
+    queryFn: () => fetcher("/rest/v1/vw_avg_order_value")
+  })
+
+  const discounts = useQuery<DiscountedOrder[]>({
+    queryKey: ["discounted_orders"],
+    queryFn: () => fetcher("/rest/v1/vw_discounted_orders")
+  })
+
   return {
-    data: orderData,
-    isLoading,
-    error,
-    refetch,
-    timeframe,
-    setTimeframe
-  };
-};
+    data: {
+      sales: sales.data,
+      statuses: statuses.data,
+      fulfillment: fulfillment.data,
+      aov: aov.data,
+      discounts: discounts.data
+    },
+    isLoading: sales.isLoading || statuses.isLoading || fulfillment.isLoading || aov.isLoading || discounts.isLoading,
+    error: sales.error || statuses.error || fulfillment.error || aov.error || discounts.error,
+    refetch: () => {
+      sales.refetch()
+      statuses.refetch()
+      fulfillment.refetch()
+      aov.refetch()
+      discounts.refetch()
+    },
+    timeframe: "last_30_days", // reserved for filtering if needed
+    setTimeframe: () => {} // placeholder
+  }
+}

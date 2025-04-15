@@ -1,4 +1,5 @@
-
+// File: src/App.tsx
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,33 +18,41 @@ import NotFound from "./pages/NotFound";
 import ShopifyLogin from "./pages/ShopifyLogin";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Store from "./pages/Store";
+import { bootstrapAuthFromCookie } from "@/lib/initAuth";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/shopify-login" element={<ShopifyLogin />} />
-          <Route path="/welcome" element={<Welcome />} />
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/assistant" element={<AssistantPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    bootstrapAuthFromCookie();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/shopify-login" element={<ShopifyLogin />} />
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/customers" element={<CustomersPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/assistant" element={<AssistantPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/store" element={<Store />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

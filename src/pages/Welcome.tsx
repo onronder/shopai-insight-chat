@@ -6,7 +6,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { storeContext } from "@/hooks/useStoreData";
 import { ROUTES } from "@/utils/constants";
 
 // Import refactored components

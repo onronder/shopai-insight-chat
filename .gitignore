@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .shopify
+.env.local
+.env
+
+# Sentry Config File
+.env.sentry-build-plugin

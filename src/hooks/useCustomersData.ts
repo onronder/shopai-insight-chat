@@ -1,70 +1,76 @@
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 
-import { useState, useEffect } from 'react';
-import { 
-  customers, 
-  ltvData, 
-  recentSignups, 
-  actualChurnData,
-  projectedChurnData,
-  churnData,
-  bestCustomers
-} from "@/data/customer-data";
+export interface SegmentData {
+  segment: string
+  customer_count: number
+  avg_order_value: number
+}
 
-/**
- * Custom hook for fetching and managing customers data
- * TODO: Replace with real API integration when backend is implemented
- */
+export interface LtvBucket {
+  bucket: string
+  count: number
+}
+
+export interface ChurnCandidate {
+  id: string
+  email: string
+  days_inactive: number
+}
+
+export interface RepeatRatio {
+  repeat_customers: number
+  new_customers: number
+}
+
+const getAuthHeaders = async () => {
+  const session = await supabase.auth.getSession()
+  const token = session.data?.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const fetcher = async (url: string) => {
+  const headers = await getAuthHeaders()
+  const res = await fetch(url, { headers })
+  if (!res.ok) throw new Error(`Failed to fetch ${url}`)
+  return res.json()
+}
+
 export const useCustomersData = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [hasData, setHasData] = useState(true);
-  const [segment, setSegment] = useState("all");
-  const [retryCounter, setRetryCounter] = useState(0);
-  
-  const [data, setData] = useState({
-    customers,
-    ltvData,
-    recentSignups,
-    actualChurnData,
-    projectedChurnData,
-    churnData,
-    bestCustomers
-  });
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setHasError(false);
-      
-      try {
-        // TODO: Replace with actual API calls to backend
-        // Simulate API loading delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        // Mock data is already set in state initialization
-        setHasData(true);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching customers data:", err);
-        setHasError(true);
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [retryCounter, segment]);
-  
-  const handleRetry = () => {
-    setRetryCounter(prev => prev + 1);
-  };
-  
+  const segments = useQuery<SegmentData[]>({
+    queryKey: ["customer_segments"],
+    queryFn: () => fetcher("/functions/v1/metrics_customer_segments"),
+  })
+
+  const ltv = useQuery<LtvBucket[]>({
+    queryKey: ["ltv_distribution"],
+    queryFn: () => fetcher("/functions/v1/metrics_ltv_distribution"),
+  })
+
+  const churn = useQuery<ChurnCandidate[]>({
+    queryKey: ["churn_candidates"],
+    queryFn: () => fetcher("/functions/v1/metrics_churn_candidates"),
+  })
+
+  const loyalty = useQuery<RepeatRatio>({
+    queryKey: ["repeat_ratio"],
+    queryFn: () => fetcher("/functions/v1/metrics_repeat_ratio"),
+  })
+
   return {
-    isLoading,
-    hasData,
-    hasError,
-    segment,
-    setSegment,
-    handleRetry,
-    ...data
-  };
-};
+    segments,
+    ltv,
+    churn,
+    loyalty,
+    isLoading:
+      segments.isLoading ||
+      ltv.isLoading ||
+      churn.isLoading ||
+      loyalty.isLoading,
+    error:
+      segments.error ||
+      ltv.error ||
+      churn.error ||
+      loyalty.error,
+  }
+}

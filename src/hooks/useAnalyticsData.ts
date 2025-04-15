@@ -1,99 +1,85 @@
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 
-import { useState, useEffect } from 'react';
+export interface SalesOverviewPoint {
+  period: string
+  revenue: number
+  net: number
+  refunds: number
+  orders: number
+}
 
-const salesData = [
-  { name: "Jan", total: 2400, net: 2000, refunds: 400, tax: 200 },
-  { name: "Feb", total: 1398, net: 1100, refunds: 298, tax: 150 },
-  { name: "Mar", total: 9800, net: 8900, refunds: 900, tax: 650 },
-  { name: "Apr", total: 3908, net: 3500, refunds: 408, tax: 320 },
-  { name: "May", total: 4800, net: 4200, refunds: 600, tax: 450 },
-  { name: "Jun", total: 3800, net: 3300, refunds: 500, tax: 380 },
-];
+export interface FunnelStep {
+  label: string
+  count: number
+}
 
-const funnelData = [
-  { name: "Sessions", value: 10000 },
-  { name: "Cart", value: 3000 },
-  { name: "Checkout", value: 1800 },
-  { name: "Purchase", value: 1000 },
-];
+export interface ChannelRevenue {
+  channel: string
+  value: number
+}
 
-const revenueByChannelData = [
-  { name: "Online Store", value: 65 },
-  { name: "POS", value: 15 },
-  { name: "Mobile App", value: 10 },
-  { name: "Social", value: 10 },
-];
+export interface CustomerTypeBreakdown {
+  type: string
+  count: number
+}
 
-const customerTypeData = [
-  { name: "New Customers", value: 65 },
-  { name: "Repeat Customers", value: 35 },
-];
+export interface CountryData {
+  country: string
+  value: number
+}
 
-const topCountriesData = [
-  { name: "United States", value: 145 },
-  { name: "United Kingdom", value: 87 },
-  { name: "Canada", value: 62 },
-  { name: "Australia", value: 43 },
-  { name: "Germany", value: 30 },
-];
+const getAuthHeaders = async () => {
+  const session = await supabase.auth.getSession()
+  const token = session.data?.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
-/**
- * Custom hook for fetching and managing analytics data
- * TODO: Replace with real API integration when backend is implemented
- */
+const fetcher = async (url: string) => {
+  const headers = await getAuthHeaders()
+  const res = await fetch(url, { headers })
+  if (!res.ok) throw new Error(`Failed to fetch ${url}`)
+  return res.json()
+}
+
 export const useAnalyticsData = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [hasData, setHasData] = useState(true);
-  const [timeframe, setTimeframe] = useState("last30");
-  const [view, setView] = useState("daily");
-  const [retryCounter, setRetryCounter] = useState(0);
-  
-  const [data, setData] = useState({
-    salesData,
-    funnelData,
-    revenueByChannelData,
-    customerTypeData,
-    topCountriesData,
-    COLORS: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
-  });
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // TODO: Replace with actual API calls to backend
-        // Simulate API loading delay
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        
-        // Mock data is already set in state initialization
-        setHasData(true);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching analytics data:", err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [retryCounter, timeframe, view]);
-  
-  const refetch = () => {
-    setRetryCounter(prev => prev + 1);
-  };
-  
+  const sales = useQuery<SalesOverviewPoint[]>({
+    queryKey: ["analytics_sales"],
+    queryFn: () => fetcher("/functions/v1/analytics_sales_overview")
+  })
+
+  const funnel = useQuery<FunnelStep[]>({
+    queryKey: ["analytics_funnel"],
+    queryFn: () => fetcher("/functions/v1/analytics_funnel")
+  })
+
+  const customerTypes = useQuery<CustomerTypeBreakdown[]>({
+    queryKey: ["analytics_customer_types"],
+    queryFn: () => fetcher("/functions/v1/analytics_customer_types")
+  })
+
+  const topCountries = useQuery<CountryData[]>({
+    queryKey: ["analytics_top_countries"],
+    queryFn: () => fetcher("/functions/v1/analytics_top_countries")
+  })
+
   return {
-    isLoading,
-    error,
-    hasData,
-    timeframe,
-    view,
-    setTimeframe,
-    setView,
-    refetch,
-    ...data
-  };
-};
+    isLoading: sales.isLoading || funnel.isLoading || customerTypes.isLoading || topCountries.isLoading,
+    error: sales.error || funnel.error || customerTypes.error || topCountries.error,
+    salesData: sales.data || [],
+    funnelData: funnel.data || [],
+    customerTypeData: customerTypes.data || [],
+    topCountriesData: topCountries.data || [],
+    refetch: () => {
+      sales.refetch()
+      funnel.refetch()
+      customerTypes.refetch()
+      topCountries.refetch()
+    },
+    timeframe: "last30", // placeholder
+    view: "daily",       // placeholder
+    setTimeframe: () => {},
+    setView: () => {},
+    hasData: !!sales.data?.length
+  }
+}

@@ -1,3 +1,5 @@
+// supabase/functions/analytics_funnel/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyJWT } from "../_shared/jwt.ts";
@@ -13,21 +15,17 @@ const supabase = createClient(
 serve(async (req) => {
   const startTime = performance.now();
   const path = new URL(req.url).pathname;
+  const url = new URL(req.url);
 
   try {
-    logInfo("metrics_top_products", "Request started", { path });
+    logInfo("analytics_funnel", "Request started", { path });
 
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
 
     let store_id: string | null = null;
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user?.id) store_id = user.id;
-    } catch {
-      store_id = null;
-    }
+    const { data: { user } } = await supabase.auth.getUser(token);
+    if (user?.id) store_id = user.id;
 
     if (!store_id && token) {
       const verified = await verifyJWT(token);
@@ -44,32 +42,43 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
     }
 
-    const { data, error } = await supabase
-      .from("view_top_products")
-      .select("*")
+    // These values are mocked; ideally replace with real tracked data
+    const sessions = 10000;
+    const carts = 3000;
+    const checkouts = 1800;
+
+    const { count: purchases, error } = await supabase
+      .from("shopify_orders")
+      .select("id", { count: "exact", head: true })
       .eq("store_id", store_id)
-      .order("total_revenue", { ascending: false });
+      .is("is_deleted", false);
 
     if (error) {
-      logError("metrics_top_products", error, { store_id });
-      return addSecurityHeaders(returnJsonError(500, "Failed to fetch top products data"));
+      logError("analytics_funnel", error.message, { store_id });
+      return addSecurityHeaders(returnJsonError(500, "Failed to fetch funnel"));
     }
 
-    logInfo("metrics_top_products", "Request completed", {
+    const funnelData = [
+      { name: "Sessions", value: sessions },
+      { name: "Cart", value: carts },
+      { name: "Checkout", value: checkouts },
+      { name: "Purchase", value: purchases || 0 }
+    ];
+
+    logInfo("analytics_funnel", "Success", {
       store_id,
-      count: data.length,
-      duration_ms: performance.now() - startTime
+      count: funnelData.length,
+      duration_ms: performance.now() - startTime,
     });
 
-    return addSecurityHeaders(new Response(JSON.stringify(data), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...rate.headers
-      }
-    }));
+    return addSecurityHeaders(
+      new Response(JSON.stringify(funnelData), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...rate.headers },
+      })
+    );
   } catch (err) {
-    logError("metrics_top_products", err, { path });
+    logError("analytics_funnel", err, { path });
     return addSecurityHeaders(returnJsonError(500, "Internal Server Error"));
   }
 });

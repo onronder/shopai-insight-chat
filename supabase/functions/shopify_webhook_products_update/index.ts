@@ -1,16 +1,23 @@
+// supabase/functions/shopify_webhook_products_update/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logError, logInfo } from "../_shared/logging.ts";
+import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
+const supabase = createClient(
+  Deno.env.get("PROJECT_SUPABASE_URL")!,
+  Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
+);
+
 serve(async (req) => {
+  const path = new URL(req.url).pathname;
+  const start = performance.now();
+
   try {
     const payload = await req.json();
     const shopifyDomain = req.headers.get("x-shopify-shop-domain") || "";
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     const { data: store, error: storeError } = await supabase
       .from("shopify_stores")
@@ -19,13 +26,16 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
-      console.error("Store not found for product update webhook");
-      return new Response("Store not found", { status: 404 });
+      logError("shopify_webhook_products_update", "Store not found", { shopifyDomain });
+      return returnJsonError(404, "Store not found");
     }
 
-    const shopify_product_id = payload.id.toString();
+    const shopify_product_id = payload.id?.toString();
+    if (!shopify_product_id) {
+      return returnJsonError(400, "Missing product ID");
+    }
 
-    const { data: product, error: productError } = await supabase
+    const { data: product, error: updateError } = await supabase
       .from("shopify_products")
       .update({ title: payload.title })
       .eq("shopify_product_id", shopify_product_id)
@@ -33,9 +43,12 @@ serve(async (req) => {
       .select("id")
       .single();
 
-    if (productError || !product) {
-      console.error("Product update failed:", productError?.message);
-      return new Response("Update failed", { status: 500 });
+    if (updateError || !product) {
+      logError("shopify_webhook_products_update", updateError, {
+        shopify_product_id,
+        store_id: store.id,
+      });
+      return returnJsonError(500, "Failed to update product");
     }
 
     for (const v of payload.variants || []) {
@@ -57,9 +70,22 @@ serve(async (req) => {
       payload,
     });
 
-    return new Response("OK", { status: 200 });
+    logInfo("shopify_webhook_products_update", "Product updated successfully", {
+      shopify_product_id,
+      store_id: store.id,
+    });
+
+    logInfo("shopify_webhook_products_update", "Request complete", {
+      duration_ms: performance.now() - start,
+      path,
+    });
+
+    return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    console.error("Product Update Webhook Error:", err);
-    return new Response("Webhook Error", { status: 500 });
+    logError("shopify_webhook_products_update", err, {
+      path: new URL(req.url).pathname,
+    });
+
+    return returnJsonError(500, "Webhook Error");
   }
 });
