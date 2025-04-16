@@ -1,4 +1,6 @@
 import React from "react"
+
+import { SyncBanner } from "@/components/ui/SyncBanner";
 import { AppLayout } from "@/components/layout/AppLayout"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -23,6 +25,7 @@ const OrdersPage: React.FC = () => {
 
   if (isLoading) {
     return (
+    <SyncBanner />
       <AppLayout>
         <Skeleton className="h-96 w-full" />
       </AppLayout>
@@ -31,6 +34,7 @@ const OrdersPage: React.FC = () => {
 
   if (error) {
     return (
+    <SyncBanner />
       <AppLayout>
         <ErrorState
           title="Unable to load order metrics"
@@ -43,6 +47,7 @@ const OrdersPage: React.FC = () => {
 
   if (!data || !data.sales?.length) {
     return (
+    <SyncBanner />
       <AppLayout>
         <EmptyState
           title="No order data found"
@@ -53,6 +58,7 @@ const OrdersPage: React.FC = () => {
   }
 
   return (
+    <SyncBanner />
     <AppLayout title="Orders">
       <div className="grid gap-4">
         <OrdersHeader timeframe={timeframe} onChange={setTimeframe} />

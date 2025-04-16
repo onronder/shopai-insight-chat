@@ -1,4 +1,6 @@
 import React from "react"
+
+import { SyncBanner } from "@/components/ui/SyncBanner";
 import { AppLayout } from "@/components/layout/AppLayout"
 import { useAnalyticsData } from "@/hooks/useAnalyticsData"
 import { ErrorState } from "@/components/ui/ErrorState"
@@ -36,6 +38,7 @@ const Analytics: React.FC = () => {
 
   if (isLoading) {
     return (
+    <SyncBanner />
       <AppLayout>
         <LoadingState title="Loading analytics..." />
       </AppLayout>
@@ -44,6 +47,7 @@ const Analytics: React.FC = () => {
 
   if (error) {
     return (
+    <SyncBanner />
       <AppLayout>
         <ErrorState title="Failed to load analytics data" description={error.message} />
       </AppLayout>
@@ -52,6 +56,7 @@ const Analytics: React.FC = () => {
 
   if (!hasData) {
     return (
+    <SyncBanner />
       <AppLayout>
         <EmptyState title="No analytics available" description="We couldn’t find any analytics for this store." />
       </AppLayout>
@@ -59,6 +64,7 @@ const Analytics: React.FC = () => {
   }
 
   return (
+    <SyncBanner />
     <AppLayout title="Store Analytics">
       <Tabs defaultValue="sales">
         <TabsList className="mb-4">

@@ -1,4 +1,6 @@
 import React from "react"
+
+import { SyncBanner } from "@/components/ui/SyncBanner";
 import { AppLayout } from "@/components/layout/AppLayout"
 import { useCustomersData } from "@/hooks/useCustomersData"
 import { LoadingState } from "@/components/common/LoadingState"
@@ -13,6 +15,7 @@ const CustomersPage: React.FC = () => {
 
   if (isLoading) {
     return (
+    <SyncBanner />
       <AppLayout>
         <LoadingState title="Loading customer data..." />
       </AppLayout>
@@ -21,6 +24,7 @@ const CustomersPage: React.FC = () => {
 
   if (error) {
     return (
+    <SyncBanner />
       <AppLayout>
         <ErrorState title="Failed to load customer insights" description={error.message} />
       </AppLayout>
@@ -28,6 +32,7 @@ const CustomersPage: React.FC = () => {
   }
 
   return (
+    <SyncBanner />
     <AppLayout title="Customer Insights">
       <div className="grid gap-4">
         <CustomerSegmentsTable data={segments.data || []} />

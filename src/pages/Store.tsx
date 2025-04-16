@@ -1,4 +1,6 @@
 import React from "react"
+
+import { SyncBanner } from "@/components/ui/SyncBanner";
 import { AppLayout } from "@/components/layout/AppLayout"
 import { useStoreData } from "@/hooks/useStoreData"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -11,6 +13,7 @@ export default function Store() {
 
   if (isLoading) {
     return (
+    <SyncBanner />
       <AppLayout title="Store Health & Performance">
         <Skeleton className="h-96 w-full" />
       </AppLayout>
@@ -19,6 +22,7 @@ export default function Store() {
 
   if (error) {
     return (
+    <SyncBanner />
       <AppLayout title="Store Health & Performance">
         <ErrorState title="Failed to load store metrics" description={error.message} />
       </AppLayout>
@@ -26,6 +30,7 @@ export default function Store() {
   }
 
   return (
+    <SyncBanner />
     <AppLayout title="Store Health & Performance">
       <div className="space-y-6">
         <Card>

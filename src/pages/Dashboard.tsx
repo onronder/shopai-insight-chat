@@ -1,4 +1,6 @@
 import React from "react"
+
+import { SyncBanner } from "@/components/ui/SyncBanner";
 import { AppLayout } from "@/components/layout/AppLayout"
 import { useDashboardData } from "@/hooks/useDashboardData"
 import { LoadingState } from "@/components/common/LoadingState"
@@ -22,6 +24,7 @@ const Dashboard: React.FC = () => {
 
   if (isLoading) {
     return (
+    <SyncBanner />
       <AppLayout>
         <LoadingState title="Loading dashboard..." />
       </AppLayout>
@@ -30,6 +33,7 @@ const Dashboard: React.FC = () => {
 
   if (error) {
     return (
+    <SyncBanner />
       <AppLayout>
         <ErrorState title="Failed to load dashboard data" description={error.message} />
       </AppLayout>
@@ -37,6 +41,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
+    <SyncBanner />
     <AppLayout title="Dashboard Overview">
       <div className="grid gap-4">
         <DashboardStatsCards data={stats} />

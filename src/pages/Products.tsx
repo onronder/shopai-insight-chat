@@ -1,4 +1,6 @@
 import React from "react"
+
+import { SyncBanner } from "@/components/ui/SyncBanner";
 import { AppLayout } from "@/components/layout/AppLayout"
 import { LoadingState } from "@/components/common/LoadingState"
 import { ErrorState } from "@/components/ui/ErrorState"
@@ -14,6 +16,7 @@ const ProductsPage: React.FC = () => {
 
   if (isLoading) {
     return (
+    <SyncBanner />
       <AppLayout>
         <LoadingState title="Loading product analytics..." />
       </AppLayout>
@@ -22,6 +25,7 @@ const ProductsPage: React.FC = () => {
 
   if (error) {
     return (
+    <SyncBanner />
       <AppLayout>
         <ErrorState title="Failed to load product insights" description={error.message} />
       </AppLayout>
@@ -29,6 +33,7 @@ const ProductsPage: React.FC = () => {
   }
 
   return (
+    <SyncBanner />
     <AppLayout title="Product Insights">
       <div className="grid gap-4">
         <ProductsHeader />
