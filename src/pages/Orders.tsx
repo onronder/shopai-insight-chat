@@ -10,6 +10,7 @@ import { AverageOrderValueChart } from "@/components/orders/AverageOrderValueCha
 import { DiscountedOrdersList } from "@/components/orders/DiscountedOrdersList"
 import { FulfillmentDelaysChart } from "@/components/orders/FulfillmentDelaysChart"
 import { useOrdersData } from "@/hooks/useOrdersData"
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 
 const OrdersPage: React.FC = () => {
   const {
@@ -24,6 +25,7 @@ const OrdersPage: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
+        <SyncStatusBanner />
         <Skeleton className="h-96 w-full" />
       </AppLayout>
     )
@@ -32,6 +34,7 @@ const OrdersPage: React.FC = () => {
   if (error) {
     return (
       <AppLayout>
+        <SyncStatusBanner />
         <ErrorState
           title="Unable to load order metrics"
           description={error.message}
@@ -41,28 +44,46 @@ const OrdersPage: React.FC = () => {
     )
   }
 
-  if (!data || !data.sales?.length) {
+  if (!data || data.sales.length === 0) {
     return (
       <AppLayout>
+        <SyncStatusBanner />
         <EmptyState
           title="No order data found"
-          description="We couldn’t find any orders for your store yet."
+          description="We couldn't find any orders for your store yet."
         />
       </AppLayout>
     )
   }
 
   return (
-    <AppLayout title="Orders">
+    <AppLayout>
+      <SyncStatusBanner />
       <div className="grid gap-4">
-        <OrdersHeader timeframe={timeframe} onChange={setTimeframe} />
-        <OrderVolumeChart data={data.sales} />
-        <OrderStatusChart data={data.statuses} />
+        <OrdersHeader timeframe={timeframe} onTimeframeChange={setTimeframe} />
+        <OrderVolumeChart data={data.sales.map(s => ({
+          date: s.name,
+          orders: s.sales,
+          isSale: false // Adding default value for optional property
+        }))} />
+        <OrderStatusChart data={data.statuses.map(status => ({
+          label: status.status,
+          count: status.count
+        }))} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AverageOrderValueChart data={data.aov} />
-          <FulfillmentDelaysChart data={data.fulfillment} />
+          <AverageOrderValueChart data={[{
+            date: new Date().toISOString().split('T')[0], // Adding required date property
+            value: data.aov.value
+          }]} />
+          <FulfillmentDelaysChart data={data.fulfillment.map(f => ({
+            day: f.order_id,
+            value: f.delay_days
+          }))} />
         </div>
-        <DiscountedOrdersList data={data.discounts} />
+        <DiscountedOrdersList data={data.discounts.map((d, index) => ({
+          id: index.toString(),
+          ...d
+        }))} />
       </div>
     </AppLayout>
   )

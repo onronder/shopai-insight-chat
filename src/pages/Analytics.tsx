@@ -20,6 +20,7 @@ import {
 } from "recharts"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 
 const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
 
@@ -37,7 +38,8 @@ const Analytics: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <LoadingState title="Loading analytics..." />
+        <SyncStatusBanner />
+        <LoadingState message="Loading analytics..." />
       </AppLayout>
     )
   }
@@ -45,6 +47,7 @@ const Analytics: React.FC = () => {
   if (error) {
     return (
       <AppLayout>
+        <SyncStatusBanner />
         <ErrorState title="Failed to load analytics data" description={error.message} />
       </AppLayout>
     )
@@ -53,13 +56,15 @@ const Analytics: React.FC = () => {
   if (!hasData) {
     return (
       <AppLayout>
-        <EmptyState title="No analytics available" description="We couldn’t find any analytics for this store." />
+        <SyncStatusBanner />
+        <EmptyState title="No analytics available" description="We couldn't find any analytics for this store." />
       </AppLayout>
     )
   }
 
   return (
-    <AppLayout title="Store Analytics">
+    <AppLayout>
+      <SyncStatusBanner />
       <Tabs defaultValue="sales">
         <TabsList className="mb-4">
           <TabsTrigger value="sales">Sales Overview</TabsTrigger>

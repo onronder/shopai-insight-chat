@@ -1,9 +1,9 @@
-
 import React from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { ThemeProvider } from "./ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { SyncStatusBanner } from "../common/SyncStatusBanner";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,6 +20,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
+          <SyncStatusBanner />
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             {children}
           </main>

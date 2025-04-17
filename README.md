@@ -62,7 +62,26 @@ This project is built with:
 
 ## How can I deploy this project?
 
+### Deploy with Lovable
+
 Simply open [Lovable](https://lovable.dev/projects/f3caa514-8327-45a4-8fc5-e83cf6c4a165) and click on Share -> Publish.
+
+### Deploy with Vercel
+
+This project is configured for easy deployment on Vercel. Follow these steps:
+
+1. Link your GitHub repository to Vercel
+2. Vercel will automatically detect the configuration in the `vercel.json` file
+3. The deployment will include both the frontend and serverless functions
+4. Make sure all environment variables from `.env.production` are set in your Vercel project settings
+
+### Deploy with Shopify CLI
+
+To deploy this app to your Shopify Partner account:
+
+1. Make sure you have the Shopify CLI installed: `npm install -g @shopify/cli`
+2. Deploy your app: `shopify app deploy`
+3. Follow the prompts to authenticate and complete the deployment
 
 ## Can I connect a custom domain to my Lovable project?
 

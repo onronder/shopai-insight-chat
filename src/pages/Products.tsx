@@ -8,14 +8,23 @@ import { InventoryRiskTable } from "@/components/products/InventoryRiskTable"
 import { ReturnRateChart } from "@/components/products/ReturnRateChart"
 import { ProductLifecycleChart } from "@/components/products/ProductLifecycleChart"
 import { useProductsData } from "@/hooks/useProductsData"
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 
 const ProductsPage: React.FC = () => {
-  const { topSelling, isLoading, error } = useProductsData()
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    timeframe,
+    setTimeframe
+  } = useProductsData()
 
   if (isLoading) {
     return (
       <AppLayout>
-        <LoadingState title="Loading product analytics..." />
+        <SyncStatusBanner />
+        <LoadingState message="Loading product analytics..." />
       </AppLayout>
     )
   }
@@ -23,19 +32,30 @@ const ProductsPage: React.FC = () => {
   if (error) {
     return (
       <AppLayout>
-        <ErrorState title="Failed to load product insights" description={error.message} />
+        <SyncStatusBanner />
+        <ErrorState title="Failed to load product insights" description={error.message} onRetry={refetch} />
+      </AppLayout>
+    )
+  }
+
+  if (!data) {
+    return (
+      <AppLayout>
+        <SyncStatusBanner />
+        <ErrorState title="No product data found" description="We couldn't find any product insights yet." />
       </AppLayout>
     )
   }
 
   return (
-    <AppLayout title="Product Insights">
+    <AppLayout>
+      <SyncStatusBanner />
       <div className="grid gap-4">
-        <ProductsHeader />
-        <VariantSalesChart data={topSelling.data || []} />
-        <InventoryRiskTable data={[]} />
-        <ReturnRateChart data={[]} />
-        <ProductLifecycleChart data={[]} />
+        <ProductsHeader timeframe={timeframe} onTimeframeChange={setTimeframe} />
+        <VariantSalesChart data={data.topSelling} />
+        <InventoryRiskTable data={data.inventoryRisks} />
+        <ReturnRateChart data={data.returnRates} />
+        <ProductLifecycleChart data={data.lifecycle} />
       </div>
     </AppLayout>
   )

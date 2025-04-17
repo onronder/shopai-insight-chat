@@ -7,6 +7,7 @@ import { CustomerSegmentsTable } from "@/components/customers/CustomerSegmentsTa
 import { LtvDistributionChart } from "@/components/customers/LtvDistributionChart"
 import { ChurnForecastChart } from "@/components/customers/ChurnForecastChart"
 import { BestCustomers } from "@/components/customers/BestCustomers"
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 
 const CustomersPage: React.FC = () => {
   const { segments, ltv, churn, loyalty, isLoading, error } = useCustomersData()
@@ -14,7 +15,8 @@ const CustomersPage: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <LoadingState title="Loading customer data..." />
+        <SyncStatusBanner />
+        <LoadingState message="Loading customer data..." />
       </AppLayout>
     )
   }
@@ -22,13 +24,15 @@ const CustomersPage: React.FC = () => {
   if (error) {
     return (
       <AppLayout>
+        <SyncStatusBanner />
         <ErrorState title="Failed to load customer insights" description={error.message} />
       </AppLayout>
     )
   }
 
   return (
-    <AppLayout title="Customer Insights">
+    <AppLayout>
+      <SyncStatusBanner />
       <div className="grid gap-4">
         <CustomerSegmentsTable data={segments.data || []} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,3 +1,5 @@
+// File: supabase/functions/metrics_sales_over_time/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyJWT } from "../_shared/jwt.ts";
@@ -5,6 +7,7 @@ import { checkRateLimit, addSecurityHeaders, returnJsonError } from "../_shared/
 import { logInfo, logError } from "../_shared/logging.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
+// Supabase admin client
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
@@ -17,11 +20,12 @@ serve(async (req) => {
   try {
     logInfo("metrics_sales_over_time", "Request started", { path });
 
+    // Auth: extract and validate token
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
     let store_id: string | null = null;
 
-    // Auth via Supabase session
+    // Attempt Supabase session-based auth first
     try {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user?.id) store_id = user.id;
@@ -29,7 +33,7 @@ serve(async (req) => {
       store_id = null;
     }
 
-    // Fallback to JWT
+    // Fallback to custom JWT
     if (!store_id && token) {
       const verified = await verifyJWT(token);
       if (verified?.sub) store_id = verified.sub;
@@ -46,40 +50,40 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
     }
 
-    // Parse query params
-    const url = new URL(req.url);
-    const range = parseInt(url.searchParams.get("range") || "30"); // in days
-    const interval = url.searchParams.get("interval") || "day";
-
-    const startDate = new Date(Date.now() - range * 86400000);
-
+    // Fetch sales data from the improved view
     const { data, error } = await supabase
-      .from("view_sales_over_time")
+      .from("view_sales_over_time_with_targets")
       .select("*")
       .eq("store_id", store_id)
-      .gte("day", startDate.toISOString())
-      .order("day", { ascending: true });
+      .order("name");
 
     if (error) {
-      logError("metrics_sales_over_time", error, { store_id, range, interval });
+      logError("metrics_sales_over_time", error, { store_id });
       return addSecurityHeaders(returnJsonError(500, "Failed to fetch sales data"));
     }
 
+    // Data already in correct format, just making sure fields match the expected interface
+    const salesData = data.map(item => ({
+      name: item.name,
+      sales: Number(item.sales),
+      target: Number(item.target)
+    }));
+
     logInfo("metrics_sales_over_time", "Request completed", {
       store_id,
-      range,
-      interval,
-      records: data.length,
-      duration_ms: performance.now() - startTime
+      duration_ms: performance.now() - startTime,
+      records: salesData.length
     });
 
-    return addSecurityHeaders(new Response(JSON.stringify(data), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...rate.headers
-      }
-    }));
+    return addSecurityHeaders(
+      new Response(JSON.stringify(salesData), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...rate.headers,
+        },
+      })
+    );
   } catch (err) {
     logError("metrics_sales_over_time", err, { path });
     return addSecurityHeaders(returnJsonError(500, "Internal Server Error"));

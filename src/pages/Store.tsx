@@ -5,13 +5,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"   
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 
 export default function Store() {
   const { data, isLoading, error } = useStoreData()
 
   if (isLoading) {
     return (
-      <AppLayout title="Store Health & Performance">
+      <AppLayout>
+        <SyncStatusBanner />
         <Skeleton className="h-96 w-full" />
       </AppLayout>
     )
@@ -19,14 +21,16 @@ export default function Store() {
 
   if (error) {
     return (
-      <AppLayout title="Store Health & Performance">
+      <AppLayout>
+        <SyncStatusBanner />
         <ErrorState title="Failed to load store metrics" description={error.message} />
       </AppLayout>
     )
   }
 
   return (
-    <AppLayout title="Store Health & Performance">
+    <AppLayout>
+      <SyncStatusBanner />
       <div className="space-y-6">
         <Card>
           <CardHeader>

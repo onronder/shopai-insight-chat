@@ -8,6 +8,7 @@ import { SalesOverTimeChart } from "@/components/dashboard/SalesOverTimeChart"
 import { TopProductsChart } from "@/components/dashboard/TopProductsChart"
 import { CustomerAcquisitionChart } from "@/components/dashboard/CustomerAcquisitionChart"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 
 const Dashboard: React.FC = () => {
   const {
@@ -23,7 +24,8 @@ const Dashboard: React.FC = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <LoadingState title="Loading dashboard..." />
+        <SyncStatusBanner />
+        <LoadingState message="Loading dashboard..." />
       </AppLayout>
     )
   }
@@ -31,13 +33,15 @@ const Dashboard: React.FC = () => {
   if (error) {
     return (
       <AppLayout>
+        <SyncStatusBanner />
         <ErrorState title="Failed to load dashboard data" description={error.message} />
       </AppLayout>
     )
   }
 
   return (
-    <AppLayout title="Dashboard Overview">
+    <AppLayout>
+      <SyncStatusBanner />
       <div className="grid gap-4">
         <DashboardStatsCards data={stats} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

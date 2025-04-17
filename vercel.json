@@ -1,0 +1,22 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "routes": [
+    {
+      "src": "/functions/v1/(.*)",
+      "dest": "/api/functions/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    },
+    { 
+      "handle": "filesystem"
+    },
+    {
+      "src": "/.*",
+      "dest": "/index.html"
+    }
+  ]
+} 

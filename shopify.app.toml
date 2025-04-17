@@ -1,12 +1,25 @@
-# shopify.app.toml
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-[shopify]
-api_key = 9b6bc3e7bf1edf7b2c9231a37137b1d5
-api_secret = 389c1036ea4f5b50ff607fc229cd0b0b
+name = "ShopAI Insight Chat"
+client_id = "9b6bc3e7bf1edf7b2c9231a37137b1d5"
+client_secret = "389c1036ea4f5b50ff607fc229cd0b0b"
+application_url = "https://shopai-insight-chat.vercel.app"
+tunnel_url = "https://shopai-insight-chat.vercel.app"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_products,read_orders,read_customers,write_customers,write_products"
-application_url = "https://your-ngrok-url-here"
-redirect_url_allowlist = ["https://your-ngrok-url-here/api/auth/callback"]
 
-[cli]
-app_framework = "vite"
-web_dir = "dist"
+[auth]
+redirect_urls = ["https://shopai-insight-chat.vercel.app/api/auth/callback"]
+
+[webhooks]
+api_version = "2025-04"
+
+[pos]
+embedded = false
+
+[build]
+dev_store_url = "https://shopai-insight-chat.vercel.app"
+include_config_on_deploy = true
