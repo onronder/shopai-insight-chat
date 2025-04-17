@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,8 +32,9 @@ const ShopifyLogin: React.FC = () => {
     // Log consent before redirecting
     logConsent();
     
-    // TODO: Replace with dynamic shop parameter from user input
-    window.location.href = 'https://your-backend-domain.com/functions/v1/shopify_oauth_callback?shop=demo.myshopify.com';
+    // Use the current domain for OAuth redirect
+    const baseUrl = window.location.origin;
+    window.location.href = `${baseUrl}/functions/v1/shopify_oauth_callback?shop=flowtechstest.myshopify.com`;
   };
 
   return (
