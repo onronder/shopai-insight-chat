@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +14,17 @@ import { SampleQuestions } from "@/components/welcome/SampleQuestions";
 import { WelcomeHeader } from "@/components/welcome/WelcomeHeader";
 import { NavigationButtons } from "@/components/welcome/NavigationButtons";
 
+// Mock store context - In a real app, this would come from a hook or context provider
+interface StoreContext {
+  shopDomain: string;
+  shopName: string;
+}
+
+const mockStoreContext: StoreContext = {
+  shopDomain: 'flowtechstest.myshopify.com',
+  shopName: 'FlowTechs Test Shop'
+};
+
 // TODO: Replace static or placeholder content with live data
 
 const Welcome: React.FC = () => {
@@ -29,6 +39,7 @@ const Welcome: React.FC = () => {
   
   const [syncProgress, setSyncProgress] = useState(15);
   const [syncComplete, setSyncComplete] = useState(false);
+  const [storeContext, setStoreContext] = useState<StoreContext | null>(mockStoreContext);
   
   // Initial loading simulation
   useEffect(() => {
@@ -69,10 +80,14 @@ const Welcome: React.FC = () => {
   }, [syncProgress, loading]);
   
   const goToDashboard = () => {
+    // Set onboarding flag before navigating to dashboard
+    localStorage.setItem('onboardingCompleted', 'true');
     navigate(ROUTES.DASHBOARD);
   };
   
   const skipAndExplore = () => {
+    // Set onboarding flag even when skipping
+    localStorage.setItem('onboardingCompleted', 'true');
     navigate(ROUTES.DASHBOARD);
   };
   

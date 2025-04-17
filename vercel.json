@@ -5,13 +5,9 @@
   "routes": [
     {
       "src": "/functions/v1/(.*)",
-      "dest": "/api/functions/$1"
+      "dest": "/api/functions/v1/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/$1"
-    },
-    { 
       "handle": "filesystem"
     },
     {
