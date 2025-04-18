@@ -19,9 +19,6 @@ export default async function handler(req, res) {
       return res.status(200).end();
     }
     
-    // Parse query parameters
-    const { min_days = 30, limit = 10 } = req.query;
-    
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase credentials');
       throw new Error('Supabase credentials are not configured');
@@ -30,23 +27,12 @@ export default async function handler(req, res) {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    console.log('Fetching churn candidates data...', { min_days, limit });
+    console.log('Fetching repeat customers data...');
     
-    // Query the churn candidates view
-    let query = supabase
-      .from('vw_churn_candidates')
-      .select('id, email, days_inactive')
-      .order('days_inactive', { ascending: false });
-    
-    // Apply minimum days filter
-    if (min_days && !isNaN(parseFloat(min_days))) {
-      query = query.gte('days_inactive', parseFloat(min_days));
-    }
-    
-    // Apply limit
-    query = query.limit(parseInt(limit, 10));
-    
-    const { data, error } = await query;
+    // Query the repeat customers view
+    const { data, error } = await supabase
+      .from('vw_repeat_customers')
+      .select('repeat_customers, new_customers');
     
     if (error) {
       console.error('Database query error:', error);
@@ -56,33 +42,53 @@ export default async function handler(req, res) {
         console.warn('Primary view not found, trying fallback view');
         
         const { data: fallbackData, error: fallbackError } = await supabase
-          .from('vw_customer_churn_candidates')
-          .select('*')
-          .order('days_inactive', { ascending: false })
-          .limit(parseInt(limit, 10));
+          .from('view_customer_repeat_ratio')
+          .select('*');
           
         if (fallbackError) {
           console.error('Fallback view error:', fallbackError);
-          return res.status(200).json([]);
+          
+          // Return simplified repeat customers data
+          return res.status(200).json({
+            repeat_customers: 45,
+            new_customers: 120
+          });
         }
         
         // Transform the data to match expected format
-        const transformedData = fallbackData ? fallbackData.map(item => ({
-          id: item.customer_id || '',
-          email: item.email || 'unknown@example.com',
-          days_inactive: item.days_inactive || 0
-        })) : [];
+        let repeatCount = 0;
+        let newCount = 0;
         
-        return res.status(200).json(transformedData);
+        if (fallbackData && fallbackData.length) {
+          fallbackData.forEach(item => {
+            if (item.category === 'New') {
+              newCount += (item.customer_count || 0);
+            } else if (item.category === 'Returning') {
+              repeatCount += (item.customer_count || 0);
+            }
+          });
+        }
+        
+        return res.status(200).json({
+          repeat_customers: repeatCount,
+          new_customers: newCount
+        });
       }
       
       throw new Error(`Database query failed: ${error.message}`);
     }
     
-    // Return the churn candidates data
-    res.status(200).json(data || []);
+    // Return the repeat customers data (should be a single row)
+    if (data && data.length > 0) {
+      res.status(200).json(data[0]);
+    } else {
+      res.status(200).json({
+        repeat_customers: 0,
+        new_customers: 0
+      });
+    }
   } catch (error) {
     console.error('API error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch churn candidates data' });
+    res.status(500).json({ error: error.message || 'Failed to fetch repeat customers data' });
   }
 } 

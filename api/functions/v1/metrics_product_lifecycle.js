@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client with environment variables
+// Initialize Supabase client
 const supabaseUrl = process.env.PROJECT_SUPABASE_URL;
 const supabaseKey = process.env.PROJECT_SERVICE_ROLE_KEY;
 
@@ -16,8 +16,7 @@ export default async function handler(req, res) {
     );
 
     if (req.method === 'OPTIONS') {
-      res.status(200).end();
-      return;
+      return res.status(200).end();
     }
     
     // Parse query parameters
@@ -28,7 +27,7 @@ export default async function handler(req, res) {
       throw new Error('Supabase credentials are not configured');
     }
     
-    // Create Supabase client with service role key
+    // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     console.log('Fetching product lifecycle data...', { stage });
