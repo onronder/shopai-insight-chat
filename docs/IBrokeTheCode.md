@@ -37,8 +37,8 @@ This document tracks all the fixes needed across the system layers to ensure pro
 - [x] Ensure proper error handling without changing response structure
 
 ### Analytics Endpoints
-- [ ] Update `metrics_sales_overview.js` to handle view field names correctly
-- [ ] Fix `metrics_funnel.js` to maintain consistent response structure
+- [x] Update `metrics_sales_overview.js` to handle view field names correctly
+- [x] Fix `metrics_funnel.js` to maintain consistent response structure
 - [ ] Update `metrics_customer_types.js` to match original view field names
 - [ ] Fix `metrics_top_countries.js` to preserve field mapping
 
