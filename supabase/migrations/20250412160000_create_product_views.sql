@@ -1,11 +1,5 @@
--- Drop existing views if they exist
-DROP VIEW IF EXISTS vw_variant_sales;
-DROP VIEW IF EXISTS vw_inventory_risks;
-DROP VIEW IF EXISTS vw_return_rates;
-DROP VIEW IF EXISTS vw_product_lifecycle;
-
--- Create variant sales view
-CREATE VIEW vw_variant_sales AS
+-- Create or replace variant sales view
+CREATE OR REPLACE VIEW vw_variant_sales AS
 SELECT
   v.store_id,
   v.id AS variant_id,
@@ -26,8 +20,8 @@ GROUP BY
 ORDER BY
   COALESCE(SUM(li.price * li.quantity), 0) DESC;
 
--- Create inventory risks view
-CREATE VIEW vw_inventory_risks AS
+-- Create or replace inventory risks view
+CREATE OR REPLACE VIEW vw_inventory_risks AS
 WITH sales_velocity AS (
   SELECT
     v.id AS variant_id,
@@ -73,8 +67,8 @@ ORDER BY
   END,
   daily_velocity DESC;
 
--- Create return rates view
-CREATE VIEW vw_return_rates AS
+-- Create or replace return rates view
+CREATE OR REPLACE VIEW vw_return_rates AS
 SELECT
   p.id AS product_id,
   p.title AS product_title,
@@ -96,8 +90,8 @@ HAVING
 ORDER BY
   ROUND((COUNT(DISTINCT CASE WHEN o.refunded_at IS NOT NULL THEN o.id END) * 100.0 / NULLIF(COUNT(DISTINCT o.id), 0))::numeric, 2) DESC;
 
--- Create product lifecycle view
-CREATE VIEW vw_product_lifecycle AS
+-- Create or replace product lifecycle view
+CREATE OR REPLACE VIEW vw_product_lifecycle AS
 WITH product_data AS (
   SELECT
     p.id,

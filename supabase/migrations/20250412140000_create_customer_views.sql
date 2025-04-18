@@ -1,11 +1,5 @@
--- Drop existing views if they exist
-DROP VIEW IF EXISTS vw_customer_segments;
-DROP VIEW IF EXISTS vw_ltv_distribution;
-DROP VIEW IF EXISTS vw_churn_candidates;
-DROP VIEW IF EXISTS vw_repeat_customers;
-
--- Create customer segments view
-CREATE VIEW vw_customer_segments AS
+-- Create or replace customer segments view
+CREATE OR REPLACE VIEW vw_customer_segments AS
 SELECT
   segment,
   COUNT(*) AS count,
@@ -37,8 +31,8 @@ GROUP BY
 ORDER BY
   avg_spent DESC;
 
--- Create LTV distribution view
-CREATE VIEW vw_ltv_distribution AS
+-- Create or replace LTV distribution view
+CREATE OR REPLACE VIEW vw_ltv_distribution AS
 SELECT
   CASE
     WHEN total_spent >= 1000 THEN '$1000+'
@@ -116,8 +110,8 @@ ORDER BY
     ELSE 1
   END DESC;
 
--- Create churn candidates view
-CREATE VIEW vw_churn_candidates AS
+-- Create or replace churn candidates view
+CREATE OR REPLACE VIEW vw_churn_candidates AS
 SELECT
   c.id,
   c.first_name,
@@ -141,8 +135,8 @@ HAVING
 ORDER BY
   days_since_last_order DESC;
 
--- Create repeat customers view
-CREATE VIEW vw_repeat_customers AS
+-- Create or replace repeat customers view
+CREATE OR REPLACE VIEW vw_repeat_customers AS
 SELECT
   c.id,
   c.first_name,

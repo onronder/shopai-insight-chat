@@ -1,11 +1,5 @@
--- Drop existing views if they exist
-DROP VIEW IF EXISTS vw_analytics_sales_overview;
-DROP VIEW IF EXISTS vw_analytics_funnel;
-DROP VIEW IF EXISTS vw_analytics_customer_types;
-DROP VIEW IF EXISTS vw_analytics_top_countries;
-
--- Create sales overview view
-CREATE VIEW vw_analytics_sales_overview AS
+-- Create or replace sales overview view
+CREATE OR REPLACE VIEW vw_analytics_sales_overview AS
 SELECT
   DATE_TRUNC('day', o.created_at) AS date,
   COUNT(DISTINCT o.id) AS orders_count,
@@ -23,8 +17,8 @@ GROUP BY
 ORDER BY
   DATE_TRUNC('day', o.created_at);
 
--- Create funnel view
-CREATE VIEW vw_analytics_funnel AS
+-- Create or replace funnel view
+CREATE OR REPLACE VIEW vw_analytics_funnel AS
 WITH page_views AS (
   SELECT
     DATE_TRUNC('day', created_at) AS date,
@@ -87,8 +81,8 @@ FULL OUTER JOIN
 ORDER BY
   COALESCE(pv.date, atc.date, co.date, o.date);
 
--- Create customer types view
-CREATE VIEW vw_analytics_customer_types AS
+-- Create or replace customer types view
+CREATE OR REPLACE VIEW vw_analytics_customer_types AS
 WITH customer_orders AS (
   SELECT
     customer_id,
@@ -123,8 +117,8 @@ ORDER BY
     ELSE 3
   END;
 
--- Create top countries view
-CREATE VIEW vw_analytics_top_countries AS
+-- Create or replace top countries view
+CREATE OR REPLACE VIEW vw_analytics_top_countries AS
 SELECT
   COALESCE(c.country, 'Unknown') AS country,
   COUNT(DISTINCT o.id) AS orders_count,
