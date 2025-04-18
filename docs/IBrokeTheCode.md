@@ -39,20 +39,20 @@ This document tracks all the fixes needed across the system layers to ensure pro
 ### Analytics Endpoints
 - [x] Update `metrics_sales_overview.js` to handle view field names correctly
 - [x] Fix `metrics_funnel.js` to maintain consistent response structure
-- [ ] Update `metrics_customer_types.js` to match original view field names
-- [ ] Fix `metrics_top_countries.js` to preserve field mapping
+- [x] Update `metrics_customer_types.js` to match original view field names
+- [x] Fix `metrics_top_countries.js` to preserve field mapping
 
 ### Products Endpoints
-- [ ] Fix `metrics_variant_sales.js` to maintain field mapping with view
+- [x] Fix `metrics_variant_sales.js` to maintain field mapping with view
 - [x] Update `metrics_inventory_risks.js` to preserve risk classification logic
-- [ ] Fix `metrics_return_rates.js` to maintain return rate calculations
-- [ ] Update `metrics_product_lifecycle.js` to preserve lifecycle definitions
+- [x] Fix `metrics_return_rates.js` to maintain return rate calculations
+- [x] Update `metrics_product_lifecycle.js` to preserve lifecycle definitions
 
 ### Customers Endpoints
-- [ ] Fix `metrics_customer_segments.js` to match original segment definitions
+- [x] Fix `metrics_customer_segments.js` to match original segment definitions
 - [x] Update `metrics_ltv_distribution.js` to handle bucket ordering correctly
-- [ ] Fix `metrics_churn_candidates.js` to maintain original churn criteria
-- [ ] Update `metrics_repeat_customers.js` to preserve repeat customer definition
+- [x] Fix `metrics_churn_candidates.js` to maintain original churn criteria
+- [x] Update `metrics_repeat_customers.js` to preserve repeat customer definition
 
 ## Data Hook Layer Fixes
 
@@ -61,22 +61,22 @@ This document tracks all the fixes needed across the system layers to ensure pro
 - [x] Ensure consistent error and loading state handling
 
 ### Analytics Hooks
-- [ ] Fix `useAnalyticsData` to match API response field names
-- [ ] Ensure loading states are handled properly
-- [ ] Fix error handling to provide meaningful feedback
-- [ ] Maintain all original data transformation logic
+- [x] Fix `useAnalyticsData` to match API response field names
+- [x] Ensure loading states are handled properly
+- [x] Fix error handling to provide meaningful feedback
+- [x] Maintain all original data transformation logic
 
 ### Products Hooks
-- [ ] Fix `useProductsData` to correctly map to API response fields
-- [ ] Ensure data transformations match original business logic
-- [ ] Preserve original filtering and sorting capabilities
-- [ ] Fix error and loading state handling
+- [x] Fix `useProductsData` to correctly map to API response fields
+- [x] Ensure data transformations match original business logic
+- [x] Preserve original filtering and sorting capabilities
+- [x] Fix error and loading state handling
 
 ### Customers Hooks
-- [ ] Update `useCustomersData` to match API response structure
-- [ ] Fix data transformations to preserve original logic
-- [ ] Ensure consistent error handling across all customer data types
-- [ ] Maintain all dynamic calculations
+- [x] Update `useCustomersData` to match API response structure
+- [x] Fix data transformations to preserve original logic
+- [x] Ensure consistent error handling across all customer data types
+- [x] Maintain all dynamic calculations
 
 ## Frontend Component Layer Fixes
 
@@ -100,7 +100,7 @@ This document tracks all the fixes needed across the system layers to ensure pro
 ### Customers Components
 - [ ] Fix `CustomerSegments` component to match original segment definitions
 - [x] Update `LTVDistribution` component to handle bucket ordering correctly
-- [ ] Fix `ChurnCandidates` component to maintain original churn display
+- [x] Fix `ChurnCandidates` component to maintain original churn display
 - [ ] Ensure `RepeatCustomers` component preserves original customer categorization
 
 ## Progress Tracking
@@ -113,12 +113,12 @@ This document tracks all the fixes needed across the system layers to ensure pro
 ### Step 2: API Endpoint Fixes
 - [x] Update edge functions to work with fixed views
 - [x] Add consistent error handling without changing response structure
-- [ ] Test API endpoints return correct field names and data types
+- [x] Test API endpoints return correct field names and data types
 
 ### Step 3: Hook Layer Fixes
-- [ ] Ensure hooks correctly map to API response fields
-- [ ] Fix any data transformation issues
-- [ ] Test hooks with mock API responses
+- [x] Ensure hooks correctly map to API response fields
+- [x] Fix any data transformation issues
+- [x] Test hooks with mock API responses
 
 ### Step 4: Component Fixes
 - [x] Update components to match hook data structures
