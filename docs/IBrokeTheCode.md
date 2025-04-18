@@ -86,19 +86,19 @@ This document tracks all the fixes needed across the system layers to ensure pro
 - [x] Fix any field mapping issues in component props
 
 ### Analytics Components
-- [x] Fix `SalesOverview` component to map to correct API data fields
-- [x] Update `Funnel` component data mapping
-- [x] Fix `CustomerTypes` component field mappings
-- [x] Update `TopCountries` component to match API response structure
+- [ ] Fix `SalesOverview` component to map to correct API data fields
+- [ ] Update `Funnel` component data mapping
+- [ ] Fix `CustomerTypes` component field mappings
+- [ ] Update `TopCountries` component to match API response structure
 
 ### Products Components
-- [x] Fix `VariantSales` component to map to correct data fields
-- [x] Update `InventoryRisks` component to preserve risk classification display
-- [x] Fix `ReturnRates` component field mappings
-- [x] Ensure `ProductLifecycle` component maintains correct lifecycle visualization
+- [ ] Fix `VariantSales` component to map to correct data fields
+- [ ] Update `InventoryRisks` component to preserve risk classification display
+- [ ] Fix `ReturnRates` component field mappings
+- [ ] Ensure `ProductLifecycle` component maintains correct lifecycle visualization
 
 ### Customers Components
-- [x] Fix `CustomerSegments` component to match original segment definitions
+- [ ] Fix `CustomerSegments` component to match original segment definitions
 - [x] Update `LTVDistribution` component to handle bucket ordering correctly
 - [x] Fix `ChurnCandidates` component to maintain original churn display
 - [x] Ensure `RepeatCustomers` component preserves original customer categorization
@@ -122,10 +122,10 @@ This document tracks all the fixes needed across the system layers to ensure pro
 
 ### Step 4: Component Fixes
 - [x] Update components to match hook data structures
-- [x] Fix any rendering issues
-- [x] Test components with sample data
+- [ ] Fix any rendering issues
+- [ ] Test components with sample data
 
 ### Step 5: Integration Testing
-- [x] Test complete data flow from database to UI
-- [x] Verify all pages display data correctly
-- [x] Ensure all dynamic functionality works as expected 
+- [ ] Test complete data flow from database to UI
+- [ ] Verify all pages display data correctly
+- [ ] Ensure all dynamic functionality works as expected 

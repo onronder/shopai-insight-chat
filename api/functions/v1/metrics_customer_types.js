@@ -29,33 +29,29 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Parse query parameters
-    const { storeId, limit = 10 } = req.query;
+    // Parse storeId from query params
+    const { storeId } = req.query;
     if (!storeId) {
       return res.status(400).json({ error: 'Store ID is required' });
     }
 
     // Query the view
     let { data, error } = await supabase
-      .from('vw_variant_sales')
+      .from('vw_analytics_customer_types')
       .select('*')
-      .eq('store_id', storeId)
-      .order('total_sales', { ascending: false })
-      .limit(parseInt(limit, 10));
+      .eq('store_id', storeId);
 
     // If the view doesn't exist or there's an error, try a fallback
     if (error) {
-      console.error('Error querying vw_variant_sales:', error);
+      console.error('Error querying vw_analytics_customer_types:', error);
       
       // Try fallback to old view name if it exists
       let fallbackData;
       try {
         const { data: fallbackResult, error: fallbackError } = await supabase
-          .from('view_variant_sales')
+          .from('view_customer_types')
           .select('*')
-          .eq('store_id', storeId)
-          .order('sales', { ascending: false })
-          .limit(parseInt(limit, 10));
+          .eq('store_id', storeId);
           
         if (fallbackError) throw fallbackError;
         fallbackData = fallbackResult;
@@ -63,12 +59,10 @@ export default async function handler(req, res) {
         console.error('Fallback query failed:', fallbackError);
         // Return mock data as last resort
         return res.status(200).json({
-          variants: [
-            { variant: 'T-Shirt - Medium, Blue', sales: 520, product: 'T-Shirt', inventory: 42 },
-            { variant: 'Hoodie - Large, Black', sales: 480, product: 'Hoodie', inventory: 35 },
-            { variant: 'Jeans - 32, Dark Wash', sales: 420, product: 'Jeans', inventory: 28 },
-            { variant: 'Sneakers - Size 10, White', sales: 380, product: 'Sneakers', inventory: 15 },
-            { variant: 'Watch - Silver', sales: 300, product: 'Watch', inventory: 22 }
+          customerTypes: [
+            { type: 'new', count: 120 },
+            { type: 'returning', count: 80 },
+            { type: 'loyal', count: 50 }
           ]
         });
       }
@@ -78,18 +72,15 @@ export default async function handler(req, res) {
     }
 
     // Transform data to match frontend expectations
-    const variants = data.map(item => ({
-      variant: item.variant_title || 'Unknown',
-      sales: parseFloat(item.total_sales || item.sales || 0),
-      product: item.product_title || item.product || 'Unknown',
-      inventory: parseInt(item.inventory_quantity || item.inventory || 0, 10),
-      variantId: item.variant_id || ''
+    const customerTypes = data.map(item => ({
+      type: item.customer_type || item.type,
+      count: item.count || 0
     }));
 
     // Return the data
-    return res.status(200).json({ variants });
+    return res.status(200).json({ customerTypes });
   } catch (err) {
-    console.error('Unexpected error in variant sales endpoint:', err);
+    console.error('Unexpected error in customer types endpoint:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 } 

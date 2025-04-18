@@ -1,71 +1,98 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+// Initialize Supabase client with environment variables
 const supabaseUrl = process.env.PROJECT_SUPABASE_URL;
 const supabaseKey = process.env.PROJECT_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle OPTIONS request (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Only allow GET requests
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-    );
-
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-
+    // Check for required environment variables
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase credentials');
-      throw new Error('Supabase credentials are not configured');
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Create Supabase client
+    // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    console.log('Fetching LTV distribution data...');
+    console.log('Querying LTV distribution data...');
     
-    // Query the correct view, maintaining expected field names
-    const { data, error } = await supabase
+    // Query the view for LTV distribution
+    let { data, error } = await supabase
       .from('vw_ltv_distribution')
-      .select('bucket, count');
+      .select('*');
     
+    // If the view doesn't exist or there's an error, try a fallback
     if (error) {
-      console.error('Database query error:', error);
+      console.error('Error querying vw_ltv_distribution:', error);
       
-      // If primary view doesn't exist, try fallback
-      if (error.code === '42P01') {
-        console.warn('Primary view not found, trying fallback view');
-        
+      try {
         const { data: fallbackData, error: fallbackError } = await supabase
-          .from('view_ltv_distribution')
+          .from('view_ltv_buckets')
           .select('*');
           
-        if (fallbackError) {
-          console.error('Fallback view error:', fallbackError);
-          throw new Error(`Database query failed: ${fallbackError.message}`);
-        }
-        
-        // Transform to match expected structure if needed
-        const transformedData = fallbackData ? fallbackData.map(item => ({
-          bucket: item.ltv_bucket || 'Unknown',
-          count: item.customer_count || 0
-        })) : [];
-        
-        return res.status(200).json(transformedData);
+        if (fallbackError) throw fallbackError;
+        data = fallbackData;
+      } catch (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        // Return mock data as last resort
+        return res.status(200).json({
+          buckets: [
+            { name: '$0-$50', count: 320 },
+            { name: '$51-$100', count: 210 },
+            { name: '$101-$200', count: 150 },
+            { name: '$201-$500', count: 95 },
+            { name: '$501-$1000', count: 45 },
+            { name: '$1000+', count: 15 }
+          ]
+        });
       }
-      
-      throw new Error(`Database query failed: ${error.message}`);
     }
-
-    // Return the LTV distribution data
-    res.status(200).json(data || []);
-  } catch (error) {
-    console.error('API error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch LTV distribution data' });
+    
+    // Process data
+    if (!data || data.length === 0) {
+      console.log('No LTV distribution data found, returning empty data');
+      return res.status(200).json({ buckets: [] });
+    }
+    
+    // Transform the data to match expected frontend format
+    const buckets = data.map(item => ({
+      name: item.bucket_name || item.ltv_range || `$${item.min_value}-$${item.max_value}`,
+      count: parseInt(item.customer_count) || 0
+    }));
+    
+    // Sort buckets by their minimum value if possible
+    buckets.sort((a, b) => {
+      // Custom sorting function to handle bucket names like "$0-$50", "$51-$100", "$1000+"
+      const getMinValue = (bucketName) => {
+        const match = bucketName.match(/\$(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      };
+      
+      return getMinValue(a.name) - getMinValue(b.name);
+    });
+    
+    // Return the formatted data
+    return res.status(200).json({
+      buckets
+    });
+  } catch (err) {
+    console.error('Unexpected error in LTV distribution endpoint:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 } 

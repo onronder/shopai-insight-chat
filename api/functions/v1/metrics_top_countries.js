@@ -30,31 +30,31 @@ export default async function handler(req, res) {
     }
 
     // Parse query parameters
-    const { storeId, limit = 10 } = req.query;
+    const { storeId, limit = 5 } = req.query;
     if (!storeId) {
       return res.status(400).json({ error: 'Store ID is required' });
     }
 
     // Query the view
     let { data, error } = await supabase
-      .from('vw_variant_sales')
+      .from('vw_analytics_top_countries')
       .select('*')
       .eq('store_id', storeId)
-      .order('total_sales', { ascending: false })
+      .order('total_revenue', { ascending: false })
       .limit(parseInt(limit, 10));
 
     // If the view doesn't exist or there's an error, try a fallback
     if (error) {
-      console.error('Error querying vw_variant_sales:', error);
+      console.error('Error querying vw_analytics_top_countries:', error);
       
       // Try fallback to old view name if it exists
       let fallbackData;
       try {
         const { data: fallbackResult, error: fallbackError } = await supabase
-          .from('view_variant_sales')
+          .from('view_top_countries')
           .select('*')
           .eq('store_id', storeId)
-          .order('sales', { ascending: false })
+          .order('revenue', { ascending: false })
           .limit(parseInt(limit, 10));
           
         if (fallbackError) throw fallbackError;
@@ -63,12 +63,12 @@ export default async function handler(req, res) {
         console.error('Fallback query failed:', fallbackError);
         // Return mock data as last resort
         return res.status(200).json({
-          variants: [
-            { variant: 'T-Shirt - Medium, Blue', sales: 520, product: 'T-Shirt', inventory: 42 },
-            { variant: 'Hoodie - Large, Black', sales: 480, product: 'Hoodie', inventory: 35 },
-            { variant: 'Jeans - 32, Dark Wash', sales: 420, product: 'Jeans', inventory: 28 },
-            { variant: 'Sneakers - Size 10, White', sales: 380, product: 'Sneakers', inventory: 15 },
-            { variant: 'Watch - Silver', sales: 300, product: 'Watch', inventory: 22 }
+          countries: [
+            { country: 'United States', revenue: 12500, orders: 150 },
+            { country: 'Canada', revenue: 8700, orders: 95 },
+            { country: 'United Kingdom', revenue: 6300, orders: 72 },
+            { country: 'Australia', revenue: 4200, orders: 45 },
+            { country: 'Germany', revenue: 3800, orders: 41 }
           ]
         });
       }
@@ -78,18 +78,16 @@ export default async function handler(req, res) {
     }
 
     // Transform data to match frontend expectations
-    const variants = data.map(item => ({
-      variant: item.variant_title || 'Unknown',
-      sales: parseFloat(item.total_sales || item.sales || 0),
-      product: item.product_title || item.product || 'Unknown',
-      inventory: parseInt(item.inventory_quantity || item.inventory || 0, 10),
-      variantId: item.variant_id || ''
+    const countries = data.map(item => ({
+      country: item.country || 'Unknown',
+      revenue: parseFloat(item.total_revenue || item.revenue || 0),
+      orders: parseInt(item.order_count || item.orders || 0, 10)
     }));
 
     // Return the data
-    return res.status(200).json({ variants });
+    return res.status(200).json({ countries });
   } catch (err) {
-    console.error('Unexpected error in variant sales endpoint:', err);
+    console.error('Unexpected error in top countries endpoint:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 } 

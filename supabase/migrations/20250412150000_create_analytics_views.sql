@@ -1,138 +1,123 @@
--- Create or replace sales overview view
-CREATE OR REPLACE VIEW vw_analytics_sales_overview AS
-SELECT
-  DATE_TRUNC('day', o.created_at) AS date,
-  COUNT(DISTINCT o.id) AS orders_count,
-  COUNT(DISTINCT o.customer_id) AS customers_count,
-  COALESCE(SUM(o.total_price), 0) AS revenue,
-  COALESCE(SUM(o.total_price), 0) / NULLIF(COUNT(DISTINCT o.id), 0) AS average_order_value
-FROM
-  shopify_orders o
-WHERE
-  o.store_id IS NOT NULL
-  AND o.is_deleted IS NOT TRUE
-  AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY
-  DATE_TRUNC('day', o.created_at)
-ORDER BY
-  DATE_TRUNC('day', o.created_at);
+-- Drop existing views if they exist
+DROP VIEW IF EXISTS vw_analytics_sales_overview;
+DROP VIEW IF EXISTS vw_analytics_funnel;
+DROP VIEW IF EXISTS vw_analytics_customer_types;
+DROP VIEW IF EXISTS vw_analytics_top_countries;
 
--- Create or replace funnel view
-CREATE OR REPLACE VIEW vw_analytics_funnel AS
-WITH page_views AS (
+-- Create or replace view for sales overview
+CREATE VIEW vw_analytics_sales_overview AS
+WITH sales_data AS (
   SELECT
-    DATE_TRUNC('day', created_at) AS date,
+    DATE_TRUNC('day', o.created_at) AS day,
+    DATE_TRUNC('month', o.created_at) AS month,
+    SUM(o.total_price) AS revenue,
+    SUM(o.total_price) - COALESCE(SUM(o.total_tax), 0) AS net,
+    COALESCE(SUM(CASE WHEN o.financial_status = 'refunded' THEN o.total_price ELSE 0 END), 0) AS refunds,
+    COUNT(o.id) AS orders
+  FROM
+    shopify_orders o
+  WHERE
+    o.is_deleted IS NOT TRUE
+  GROUP BY
+    day, month
+)
+SELECT
+  TO_CHAR(day, 'YYYY-MM-DD') AS period,
+  revenue,
+  net,
+  refunds,
+  orders
+FROM
+  sales_data
+ORDER BY
+  day DESC;
+
+-- Create or replace view for customer funnel
+CREATE VIEW vw_analytics_funnel AS
+WITH metrics AS (
+  SELECT
+    (SELECT COUNT(*) FROM shopify_customers) AS total_visitors,
+    (SELECT COUNT(*) FROM shopify_customers WHERE email IS NOT NULL) AS subscribers,
+    (SELECT COUNT(DISTINCT customer_id) FROM shopify_orders WHERE is_deleted IS NOT TRUE) AS customers,
+    (SELECT COUNT(DISTINCT customer_id) FROM shopify_orders WHERE is_deleted IS NOT TRUE GROUP BY customer_id HAVING COUNT(*) > 1) AS repeat_customers
+)
+SELECT 'Visitors' AS label, total_visitors AS count FROM metrics
+UNION ALL
+SELECT 'Subscribers' AS label, subscribers AS count FROM metrics
+UNION ALL
+SELECT 'Customers' AS label, customers AS count FROM metrics
+UNION ALL
+SELECT 'Repeat Customers' AS label, repeat_customers AS count FROM metrics
+ORDER BY 
+  CASE 
+    label 
+    WHEN 'Visitors' THEN 1 
+    WHEN 'Subscribers' THEN 2 
+    WHEN 'Customers' THEN 3 
+    WHEN 'Repeat Customers' THEN 4 
+    ELSE 5 
+  END;
+
+-- Create or replace view for customer types
+CREATE VIEW vw_analytics_customer_types AS
+WITH order_counts AS (
+  SELECT
+    c.id,
+    COUNT(o.id) AS order_count
+  FROM
+    shopify_customers c
+  LEFT JOIN
+    shopify_orders o ON c.id = o.customer_id AND o.is_deleted IS NOT TRUE
+  GROUP BY
+    c.id
+),
+customer_types AS (
+  SELECT
+    CASE
+      WHEN order_count = 0 THEN 'No Orders'
+      WHEN order_count = 1 THEN 'One-time'
+      WHEN order_count BETWEEN 2 AND 3 THEN 'Occasional'
+      WHEN order_count > 3 THEN 'Loyal'
+    END AS type,
     COUNT(*) AS count
   FROM
-    shopify_page_views
-  WHERE
-    created_at >= CURRENT_DATE - INTERVAL '30 days'
+    order_counts
   GROUP BY
-    DATE_TRUNC('day', created_at)
-),
-add_to_carts AS (
+    type
+)
+SELECT
+  type,
+  count
+FROM
+  customer_types
+ORDER BY
+  CASE 
+    type
+    WHEN 'No Orders' THEN 1
+    WHEN 'One-time' THEN 2
+    WHEN 'Occasional' THEN 3
+    WHEN 'Loyal' THEN 4
+    ELSE 5
+  END;
+
+-- Create or replace view for top countries
+CREATE VIEW vw_analytics_top_countries AS
+WITH country_orders AS (
   SELECT
-    DATE_TRUNC('day', created_at) AS date,
-    COUNT(*) AS count
-  FROM
-    shopify_add_to_carts
-  WHERE
-    created_at >= CURRENT_DATE - INTERVAL '30 days'
-  GROUP BY
-    DATE_TRUNC('day', created_at)
-),
-checkouts AS (
-  SELECT
-    DATE_TRUNC('day', created_at) AS date,
-    COUNT(*) AS count
-  FROM
-    shopify_checkouts
-  WHERE
-    created_at >= CURRENT_DATE - INTERVAL '30 days'
-  GROUP BY
-    DATE_TRUNC('day', created_at)
-),
-orders AS (
-  SELECT
-    DATE_TRUNC('day', created_at) AS date,
-    COUNT(*) AS count
+    COALESCE(shipping_address->>'country', 'Unknown') AS country,
+    COUNT(*) AS value
   FROM
     shopify_orders
   WHERE
     is_deleted IS NOT TRUE
-    AND created_at >= CURRENT_DATE - INTERVAL '30 days'
   GROUP BY
-    DATE_TRUNC('day', created_at)
+    country
 )
 SELECT
-  COALESCE(pv.date, atc.date, co.date, o.date) AS date,
-  COALESCE(pv.count, 0) AS page_views,
-  COALESCE(atc.count, 0) AS add_to_carts,
-  COALESCE(co.count, 0) AS checkouts,
-  COALESCE(o.count, 0) AS orders
+  country,
+  value
 FROM
-  page_views pv
-FULL OUTER JOIN
-  add_to_carts atc ON pv.date = atc.date
-FULL OUTER JOIN
-  checkouts co ON COALESCE(pv.date, atc.date) = co.date
-FULL OUTER JOIN
-  orders o ON COALESCE(pv.date, atc.date, co.date) = o.date
+  country_orders
 ORDER BY
-  COALESCE(pv.date, atc.date, co.date, o.date);
-
--- Create or replace customer types view
-CREATE OR REPLACE VIEW vw_analytics_customer_types AS
-WITH customer_orders AS (
-  SELECT
-    customer_id,
-    COUNT(*) AS order_count
-  FROM
-    shopify_orders
-  WHERE
-    store_id IS NOT NULL
-    AND is_deleted IS NOT TRUE
-  GROUP BY
-    customer_id
-)
-SELECT
-  customer_type,
-  COUNT(*) AS count
-FROM (
-  SELECT
-    CASE
-      WHEN order_count = 1 THEN 'New'
-      WHEN order_count > 1 THEN 'Returning'
-      ELSE 'Unknown'
-    END AS customer_type
-  FROM
-    customer_orders
-) AS types
-GROUP BY
-  customer_type
-ORDER BY
-  CASE
-    WHEN customer_type = 'New' THEN 1
-    WHEN customer_type = 'Returning' THEN 2
-    ELSE 3
-  END;
-
--- Create or replace top countries view
-CREATE OR REPLACE VIEW vw_analytics_top_countries AS
-SELECT
-  COALESCE(c.country, 'Unknown') AS country,
-  COUNT(DISTINCT o.id) AS orders_count,
-  COALESCE(SUM(o.total_price), 0) AS revenue
-FROM
-  shopify_orders o
-LEFT JOIN
-  shopify_customers c ON o.customer_id = c.id
-WHERE
-  o.store_id IS NOT NULL
-  AND o.is_deleted IS NOT TRUE
-  AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY
-  COALESCE(c.country, 'Unknown')
-ORDER BY
-  COALESCE(SUM(o.total_price), 0) DESC
+  value DESC
 LIMIT 10; 

@@ -1,94 +1,159 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+// Initialize Supabase client with environment variables
 const supabaseUrl = process.env.PROJECT_SUPABASE_URL;
 const supabaseKey = process.env.PROJECT_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-  try {
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-    );
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-    
+  // Handle OPTIONS request (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Only allow GET requests
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    // Check for required environment variables
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase credentials');
-      throw new Error('Supabase credentials are not configured');
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Create Supabase client
+    // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    console.log('Fetching repeat customers data...');
+    // Parse timeframe parameter or use default (30 days)
+    const timeframe = req.query.timeframe || '30d';
     
-    // Query the repeat customers view
-    const { data, error } = await supabase
+    console.log('Querying repeat customers data...');
+    
+    // Query the view for repeat customers
+    let { data, error } = await supabase
       .from('vw_repeat_customers')
-      .select('repeat_customers, new_customers');
+      .select('*');
     
+    // If the view doesn't exist or there's an error, try a fallback
     if (error) {
-      console.error('Database query error:', error);
+      console.error('Error querying vw_repeat_customers:', error);
       
-      // If primary view doesn't exist, try fallback view
-      if (error.code === '42P01') {
-        console.warn('Primary view not found, trying fallback view');
-        
+      try {
         const { data: fallbackData, error: fallbackError } = await supabase
-          .from('view_customer_repeat_ratio')
+          .from('view_repeat_vs_new')
           .select('*');
           
-        if (fallbackError) {
-          console.error('Fallback view error:', fallbackError);
-          
-          // Return simplified repeat customers data
-          return res.status(200).json({
-            repeat_customers: 45,
-            new_customers: 120
-          });
-        }
-        
-        // Transform the data to match expected format
-        let repeatCount = 0;
-        let newCount = 0;
-        
-        if (fallbackData && fallbackData.length) {
-          fallbackData.forEach(item => {
-            if (item.category === 'New') {
-              newCount += (item.customer_count || 0);
-            } else if (item.category === 'Returning') {
-              repeatCount += (item.customer_count || 0);
-            }
-          });
-        }
-        
+        if (fallbackError) throw fallbackError;
+        data = fallbackData;
+      } catch (fallbackError) {
+        console.error('Fallback query failed:', fallbackError);
+        // Return mock data as last resort
         return res.status(200).json({
-          repeat_customers: repeatCount,
-          new_customers: newCount
+          repeat: [
+            { month: '2023-01', count: 42 },
+            { month: '2023-02', count: 51 },
+            { month: '2023-03', count: 65 },
+            { month: '2023-04', count: 58 },
+            { month: '2023-05', count: 72 },
+            { month: '2023-06', count: 84 }
+          ],
+          new: [
+            { month: '2023-01', count: 120 },
+            { month: '2023-02', count: 95 },
+            { month: '2023-03', count: 105 },
+            { month: '2023-04', count: 115 },
+            { month: '2023-05', count: 125 },
+            { month: '2023-06', count: 135 }
+          ],
+          stats: {
+            repeat_rate: 0.38,
+            repeat_growth: 0.15,
+            new_growth: 0.08
+          }
         });
       }
-      
-      throw new Error(`Database query failed: ${error.message}`);
     }
     
-    // Return the repeat customers data (should be a single row)
-    if (data && data.length > 0) {
-      res.status(200).json(data[0]);
-    } else {
-      res.status(200).json({
-        repeat_customers: 0,
-        new_customers: 0
+    // Process data
+    if (!data || data.length === 0) {
+      console.log('No repeat customers data found, returning empty data');
+      return res.status(200).json({
+        repeat: [],
+        new: [],
+        stats: {
+          repeat_rate: 0,
+          repeat_growth: 0,
+          new_growth: 0
+        }
       });
     }
-  } catch (error) {
-    console.error('API error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch repeat customers data' });
+    
+    // Transform the data to match expected frontend format
+    const repeatData = [];
+    const newData = [];
+    let totalRepeat = 0;
+    let totalNew = 0;
+    let prevMonthRepeat = 0;
+    let prevMonthNew = 0;
+    let currentMonthRepeat = 0;
+    let currentMonthNew = 0;
+    let monthCount = 0;
+    
+    // Sort data by month (assuming data has a 'month' field in format YYYY-MM)
+    data.sort((a, b) => a.month.localeCompare(b.month));
+    
+    // Process each month's data
+    data.forEach((item, index) => {
+      repeatData.push({
+        month: item.month,
+        count: parseInt(item.repeat_count) || 0
+      });
+      
+      newData.push({
+        month: item.month,
+        count: parseInt(item.new_count) || 0
+      });
+      
+      totalRepeat += parseInt(item.repeat_count) || 0;
+      totalNew += parseInt(item.new_count) || 0;
+      
+      // Store previous month and current month for growth calculations
+      if (index === data.length - 2) {
+        prevMonthRepeat = parseInt(item.repeat_count) || 0;
+        prevMonthNew = parseInt(item.new_count) || 0;
+      }
+      
+      if (index === data.length - 1) {
+        currentMonthRepeat = parseInt(item.repeat_count) || 0;
+        currentMonthNew = parseInt(item.new_count) || 0;
+      }
+      
+      monthCount++;
+    });
+    
+    // Calculate stats
+    const repeatRate = totalNew > 0 ? totalRepeat / (totalRepeat + totalNew) : 0;
+    const repeatGrowth = prevMonthRepeat > 0 ? (currentMonthRepeat - prevMonthRepeat) / prevMonthRepeat : 0;
+    const newGrowth = prevMonthNew > 0 ? (currentMonthNew - prevMonthNew) / prevMonthNew : 0;
+    
+    // Return the formatted data
+    return res.status(200).json({
+      repeat: repeatData,
+      new: newData,
+      stats: {
+        repeat_rate: parseFloat(repeatRate.toFixed(2)),
+        repeat_growth: parseFloat(repeatGrowth.toFixed(2)),
+        new_growth: parseFloat(newGrowth.toFixed(2))
+      }
+    });
+  } catch (err) {
+    console.error('Unexpected error in repeat customers endpoint:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 } 

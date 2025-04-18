@@ -1,4 +1,4 @@
-// File: supabase/functions/metrics_variant_sales/index.ts
+// File: supabase/functions/metrics_inventory_risks/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -7,6 +7,7 @@ import { checkRateLimit, addSecurityHeaders, returnJsonError } from "../_shared/
 import { logInfo, logError } from "../_shared/logging.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
+// Supabase admin client
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
@@ -17,13 +18,14 @@ serve(async (req) => {
   const path = new URL(req.url).pathname;
 
   try {
-    logInfo("metrics_variant_sales", "Request started", { path });
+    logInfo("metrics_inventory_risks", "Request started", { path });
 
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
 
     let store_id: string | null = null;
 
+    // Session or JWT-based auth
     try {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user?.id) store_id = user.id;
@@ -47,29 +49,24 @@ serve(async (req) => {
     }
 
     const { data, error } = await supabase
-      .from("vw_variant_sales_summary")
-      .select("*")
+      .from("vw_inventory_risks")
+      .select("product_title, variant_title, risk_type, inventory_level, reorder_point, sales_velocity")
       .eq("store_id", store_id)
-      .order("total_revenue", { ascending: false });
+      .order("sales_velocity", { ascending: false })
+      .limit(20);
 
     if (error) {
-      logError("metrics_variant_sales", error, { store_id });
-      return addSecurityHeaders(returnJsonError(500, "Failed to fetch variant sales summary"));
+      logError("metrics_inventory_risks", error, { store_id });
+      return addSecurityHeaders(returnJsonError(500, "Failed to fetch inventory risk data"));
     }
 
-    // ✅ Transform data to expected frontend format
-    const transformed = (data ?? []).map(item => ({
-      variant_title: item.sku ?? 'Unnamed Variant',
-      total_sales: Number(item.total_revenue ?? 0)
-    }));
-
-    logInfo("metrics_variant_sales", "Request completed", {
+    logInfo("metrics_inventory_risks", "Request completed", {
       store_id,
-      count: transformed.length,
+      count: data.length,
       duration_ms: performance.now() - startTime
     });
 
-    return addSecurityHeaders(new Response(JSON.stringify(transformed), {
+    return addSecurityHeaders(new Response(JSON.stringify(data), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -77,7 +74,7 @@ serve(async (req) => {
       }
     }));
   } catch (err) {
-    logError("metrics_variant_sales", err, { path });
+    logError("metrics_inventory_risks", err, { path });
     return addSecurityHeaders(returnJsonError(500, "Internal Server Error"));
   }
 });
