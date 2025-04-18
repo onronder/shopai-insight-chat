@@ -1,5 +1,11 @@
+-- Drop existing views if they exist
+DROP VIEW IF EXISTS vw_customer_segments;
+DROP VIEW IF EXISTS vw_ltv_distribution;
+DROP VIEW IF EXISTS vw_churn_candidates;
+DROP VIEW IF EXISTS vw_repeat_customers;
+
 -- Create customer segment view
-CREATE OR REPLACE VIEW vw_customer_segments AS
+CREATE VIEW vw_customer_segments AS
 SELECT
   CASE
     WHEN total_spent >= 500 THEN 'High Value'
@@ -18,7 +24,7 @@ FROM (
   FROM
     shopify_customers c
   LEFT JOIN
-    shopify_orders o ON c.id = o.customer_id AND o.cancelled_at IS NULL
+    shopify_orders o ON c.id = o.customer_id AND o.is_deleted IS NOT TRUE
   WHERE
     c.store_id IS NOT NULL
   GROUP BY
@@ -30,7 +36,7 @@ ORDER BY
   customer_count DESC;
 
 -- Create LTV distribution view
-CREATE OR REPLACE VIEW vw_ltv_distribution AS
+CREATE VIEW vw_ltv_distribution AS
 SELECT
   CASE
     WHEN total_spent >= 1000 THEN '$1000+'
@@ -48,7 +54,7 @@ FROM (
   FROM
     shopify_customers c
   LEFT JOIN
-    shopify_orders o ON c.id = o.customer_id AND o.cancelled_at IS NULL
+    shopify_orders o ON c.id = o.customer_id AND o.is_deleted IS NOT TRUE
   WHERE
     c.store_id IS NOT NULL
   GROUP BY
@@ -67,7 +73,7 @@ ORDER BY
   END;
 
 -- Create churn candidates view
-CREATE OR REPLACE VIEW vw_churn_candidates AS
+CREATE VIEW vw_churn_candidates AS
 SELECT
   c.id,
   c.email,
@@ -75,12 +81,12 @@ SELECT
 FROM
   shopify_customers c
 LEFT JOIN
-  shopify_orders o ON c.id = o.customer_id AND o.cancelled_at IS NULL
+  shopify_orders o ON c.id = o.customer_id AND o.is_deleted IS NOT TRUE
 WHERE
   c.store_id IS NOT NULL
   AND c.id IN (
     SELECT customer_id FROM shopify_orders 
-    WHERE cancelled_at IS NULL
+    WHERE is_deleted IS NOT TRUE
     GROUP BY customer_id 
     HAVING COUNT(*) >= 1
   )
@@ -92,7 +98,7 @@ ORDER BY
   days_inactive DESC;
 
 -- Create repeat customers view
-CREATE OR REPLACE VIEW vw_repeat_customers AS
+CREATE VIEW vw_repeat_customers AS
 SELECT
   COUNT(CASE WHEN orders_count > 1 THEN 1 END) AS repeat_customers,
   COUNT(CASE WHEN orders_count = 1 THEN 1 END) AS new_customers
@@ -103,7 +109,7 @@ FROM (
   FROM
     shopify_customers c
   LEFT JOIN
-    shopify_orders o ON c.id = o.customer_id AND o.cancelled_at IS NULL
+    shopify_orders o ON c.id = o.customer_id AND o.is_deleted IS NOT TRUE
   WHERE
     c.store_id IS NOT NULL
   GROUP BY

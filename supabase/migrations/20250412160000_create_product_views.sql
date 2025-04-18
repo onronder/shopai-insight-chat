@@ -1,33 +1,43 @@
+-- Drop existing views if they exist
+DROP VIEW IF EXISTS vw_variant_sales;
+DROP VIEW IF EXISTS vw_inventory_risks;
+DROP VIEW IF EXISTS vw_return_rates;
+DROP VIEW IF EXISTS vw_product_lifecycle;
+
 -- Create variant sales view
-CREATE OR REPLACE VIEW vw_variant_sales AS
+CREATE VIEW vw_variant_sales AS
 SELECT
-  soli.variant_title,
+  soli.variant_id,
+  pv.title AS variant_title,
   SUM(soli.price * soli.quantity) AS total_sales
 FROM
   shopify_order_line_items soli
 LEFT JOIN
   shopify_orders so ON soli.order_id = so.id
+LEFT JOIN
+  shopify_product_variants pv ON soli.variant_id = pv.id
 WHERE
-  so.cancelled_at IS NULL
+  so.is_deleted IS NOT TRUE
   AND so.created_at >= CURRENT_DATE - INTERVAL '90 days'
 GROUP BY
-  soli.variant_title
+  soli.variant_id, pv.title
 ORDER BY
   total_sales DESC;
 
 -- Create inventory risks view
-CREATE OR REPLACE VIEW vw_inventory_risks AS
+CREATE VIEW vw_inventory_risks AS
 WITH product_sales AS (
   SELECT
     soli.product_id,
     MAX(p.title) AS product_title,
-    soli.variant_title,
+    pv.title AS variant_title,
+    soli.variant_id,
     COUNT(DISTINCT so.id) AS orders_count,
     SUM(soli.quantity) AS total_quantity_sold,
-    MAX(iv.quantity) AS inventory_level,
+    MAX(pv.inventory_quantity) AS inventory_level,
     CASE
-      WHEN MAX(iv.quantity) IS NULL THEN 0
-      ELSE MAX(iv.quantity)
+      WHEN MAX(pv.inventory_quantity) IS NULL THEN 0
+      ELSE MAX(pv.inventory_quantity)
     END AS inventory_level_safe,
     -- Calculate sales velocity (items sold per day)
     ROUND(SUM(soli.quantity)::numeric / GREATEST(90, 1), 2) AS sales_velocity
@@ -38,12 +48,12 @@ WITH product_sales AS (
   LEFT JOIN
     shopify_products p ON soli.product_id = p.id
   LEFT JOIN
-    shopify_inventory_variants iv ON soli.variant_id = iv.variant_id
+    shopify_product_variants pv ON soli.variant_id = pv.id
   WHERE
-    so.cancelled_at IS NULL
+    so.is_deleted IS NOT TRUE
     AND so.created_at >= CURRENT_DATE - INTERVAL '90 days'
   GROUP BY
-    soli.product_id, soli.variant_title
+    soli.product_id, pv.title, soli.variant_id
 )
 SELECT
   product_id,
@@ -71,23 +81,21 @@ ORDER BY
   END;
 
 -- Create return rates view
-CREATE OR REPLACE VIEW vw_return_rates AS
+CREATE VIEW vw_return_rates AS
 SELECT
   p.id AS product_id,
   p.title AS product_title,
   COUNT(DISTINCT oli.order_id) AS orders_count,
-  COUNT(DISTINCT r.id) AS returns_count,
-  ROUND((COUNT(DISTINCT r.id)::numeric / NULLIF(COUNT(DISTINCT oli.order_id), 0)) * 100, 2) AS return_rate
+  SUM(CASE WHEN o.financial_status = 'refunded' OR o.financial_status = 'partially_refunded' THEN 1 ELSE 0 END) AS returns_count,
+  ROUND((SUM(CASE WHEN o.financial_status = 'refunded' OR o.financial_status = 'partially_refunded' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(DISTINCT oli.order_id), 0)) * 100, 2) AS return_rate
 FROM
   shopify_products p
 JOIN
   shopify_order_line_items oli ON p.id = oli.product_id
 JOIN
   shopify_orders o ON oli.order_id = o.id
-LEFT JOIN
-  shopify_refunds r ON o.id = r.order_id AND r.line_item_id = oli.id
 WHERE
-  o.cancelled_at IS NULL
+  o.is_deleted IS NOT TRUE
   AND o.created_at >= CURRENT_DATE - INTERVAL '90 days'
 GROUP BY
   p.id, p.title
@@ -97,7 +105,7 @@ ORDER BY
   return_rate DESC;
 
 -- Create product lifecycle view
-CREATE OR REPLACE VIEW vw_product_lifecycle AS
+CREATE VIEW vw_product_lifecycle AS
 WITH product_metrics AS (
   SELECT
     p.id,
@@ -115,7 +123,7 @@ WITH product_metrics AS (
   LEFT JOIN
     shopify_order_line_items soli ON p.id = soli.product_id
   LEFT JOIN
-    shopify_orders so ON soli.order_id = so.id AND so.cancelled_at IS NULL
+    shopify_orders so ON soli.order_id = so.id AND so.is_deleted IS NOT TRUE
   WHERE
     so.created_at >= CURRENT_DATE - INTERVAL '90 days'
   GROUP BY
