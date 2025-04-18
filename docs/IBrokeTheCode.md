@@ -13,22 +13,22 @@ This document tracks all the fixes needed across the system layers to ensure pro
 - [x] Fix `vw_analytics_sales_overview` PostgreSQL compatibility without changing column structure
   - Keep original fields: period, revenue, net, refunds, orders
   - Fix GROUP BY/ORDER BY to use position or repeat expression
-- [ ] Fix `vw_analytics_funnel` to maintain original output structure
-- [ ] Fix `vw_analytics_customer_types` to keep original segmentation logic
-- [ ] Fix `vw_analytics_top_countries` PostgreSQL compatibility issues
+- [x] Fix `vw_analytics_funnel` to maintain original output structure
+- [x] Fix `vw_analytics_customer_types` to keep original segmentation logic
+- [x] Fix `vw_analytics_top_countries` PostgreSQL compatibility issues
 
 ### Products Page
-- [ ] Fix `vw_variant_sales` to maintain original column structure and calculations
+- [x] Fix `vw_variant_sales` to maintain original column structure and calculations
 - [x] Fix `vw_inventory_risks` ORDER BY syntax without changing risk classification logic
-- [ ] Fix `vw_return_rates` to maintain original return rate calculation method
-- [ ] Fix `vw_product_lifecycle` to preserve original lifecycle stage definitions
+- [x] Fix `vw_return_rates` to maintain original return rate calculation method
+- [x] Fix `vw_product_lifecycle` to preserve original lifecycle stage definitions
 
 ### Customers Page
 - [x] Fix `vw_customer_segments` to maintain original segment definitions
 - [x] Fix `vw_ltv_distribution` ORDER BY syntax without changing bucket definitions
   - Replace direct bucket reference with PostgreSQL-compatible alternative
-- [ ] Fix `vw_churn_candidates` to maintain original churn definition criteria
-- [ ] Fix `vw_repeat_customers` to keep original repeat customer logic
+- [x] Fix `vw_churn_candidates` to maintain original churn definition criteria
+- [x] Fix `vw_repeat_customers` to keep original repeat customer logic
 
 ## API Layer Fixes (Edge Functions)
 
@@ -107,8 +107,8 @@ This document tracks all the fixes needed across the system layers to ensure pro
 
 ### Step 1: Database Fixes
 - [x] Create SQL migration files with syntax-only fixes
-- [ ] Test each view individually with sample data
-- [ ] Verify view outputs match original specifications
+- [x] Test each view individually with sample data
+- [x] Verify view outputs match original specifications
 
 ### Step 2: API Endpoint Fixes
 - [x] Update edge functions to work with fixed views
