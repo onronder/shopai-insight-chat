@@ -1,14 +1,14 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from './card';
 import { Button } from './button';
 import { AlertTriangle } from 'lucide-react';
 
-interface ErrorStateProps {
+export interface ErrorStateProps {
   title: string;
   description: string;
   retryLabel?: string;
   onRetry?: () => void;
+  action?: React.ReactNode;
 }
 
 /**
@@ -19,6 +19,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   description,
   retryLabel = "Try again",
   onRetry,
+  action,
 }) => {
   return (
     <Card className="w-full border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800/20 rounded-xl">
@@ -29,11 +30,15 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
           <p className="text-sm text-red-600 dark:text-red-400">{description}</p>
         </div>
       </CardContent>
-      {onRetry && (
+      {(onRetry || action) && (
         <CardFooter className="flex justify-center pb-10">
-          <Button variant="destructive" onClick={onRetry}>
-            {retryLabel}
-          </Button>
+          {action ? (
+            action
+          ) : onRetry && (
+            <Button variant="destructive" onClick={onRetry}>
+              {retryLabel}
+            </Button>
+          )}
         </CardFooter>
       )}
     </Card>

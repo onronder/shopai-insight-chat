@@ -1,67 +1,79 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { AlertTriangle } from "lucide-react";
-import { ChurnDataPoint } from "@/types/customer-types";
+import { Table, TableHeader, TableBody, TableRow, TableCell, TableHead } from "@/components/ui/table";
+import { ChurnCandidate } from "@/hooks/useCustomersData";
+import { AlertTriangle, Clock } from "lucide-react";
 
-interface ChurnForecastChartProps {
-  actualData: ChurnDataPoint[];
-  projectedData: ChurnDataPoint[];
-  combinedData: ChurnDataPoint[];
+export interface ChurnForecastChartProps {
+  data: ChurnCandidate[];
 }
 
-export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({ 
-  actualData, 
-  projectedData, 
-  combinedData 
-}) => {
+export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({ data }) => {
+  // Sort by days inactive (most inactive first)
+  const sortedData = [...data].sort((a, b) => b.days_inactive - a.days_inactive);
+  
+  // Calculate churn risk level 
+  const getRiskLevel = (days: number) => {
+    if (days >= 90) return "High";
+    if (days >= 60) return "Medium";
+    return "Low";
+  };
+  
+  // Get the icon color based on risk level
+  const getRiskColor = (days: number) => {
+    if (days >= 90) return "text-red-500";
+    if (days >= 60) return "text-amber-500";
+    return "text-green-500";
+  };
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
-          <CardTitle>Churn Forecast</CardTitle>
-          <CardDescription>Predicted customer churn for next 3 months</CardDescription>
+          <CardTitle>Churn Risk</CardTitle>
+          <CardDescription>Customers at risk of churning</CardDescription>
         </div>
         <AlertTriangle className="h-5 w-5 text-amber-500" />
       </CardHeader>
       <CardContent>
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={combinedData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis domain={[0, 5]} tickFormatter={(value) => `${value}%`} />
-              <Tooltip formatter={(value) => [`${value}%`, "Churn Rate"]} />
-              {/* Actual data line */}
-              <Line 
-                type="monotone" 
-                dataKey="rate" 
-                stroke="#8884d8" 
-                strokeWidth={2}
-                name="Actual"
-                isAnimationActive={false}
-                connectNulls={true}
-                dot={false}
-                activeDot={{ r: 6, fill: "#8884d8" }}
-              />
-              {/* Projected data line with dashed stroke */}
-              <Line 
-                type="monotone" 
-                data={projectedData}
-                dataKey="rate" 
-                stroke="#8884d8" 
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Projected"
-                isAnimationActive={false}
-                connectNulls={true}
-                dot={{ r: 4, fill: "#8884d8" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {data.length > 0 ? (
+          <div className="max-h-[300px] overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Days Inactive</TableHead>
+                  <TableHead>Risk Level</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedData.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>{customer.email}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{customer.days_inactive} days</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className={`font-medium ${getRiskColor(customer.days_inactive)}`}>
+                        {getRiskLevel(customer.days_inactive)}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+            <Clock className="h-8 w-8 mb-2" />
+            <p>No customers at risk of churning</p>
+          </div>
+        )}
         <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm">
-          <p><span className="font-medium">AI Insight:</span> Customer churn is projected to increase by 1.1% over the next quarter. Consider implementing a retention campaign targeting at-risk customers, especially those who haven't purchased in 60+ days.</p>
+          <p><span className="font-medium">AI Insight:</span> Consider sending personalized emails to high-risk customers with special offers to encourage them to return.</p>
         </div>
       </CardContent>
     </Card>

@@ -21,11 +21,14 @@ export default async function handler(req, res) {
     }
     
     if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase credentials');
       throw new Error('Supabase credentials are not configured');
     }
     
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    console.log('Fetching repeat customer ratio data...');
     
     // Query the repeat_ratio view
     const { data, error } = await supabase
@@ -34,13 +37,29 @@ export default async function handler(req, res) {
       .single(); // We expect only one row with the ratio
     
     if (error) {
-      throw new Error(`Database query failed: ${error.message}`);
+      console.error('Database query error:', error);
+      
+      // Check for specific error types
+      if (error.code === '42P01') {
+        throw new Error('The repeat customers view does not exist. Please run the database migrations.');
+      } else if (error.code === 'PGRST116') {
+        // Handle case where no results are found (single() with no results)
+        console.warn('No repeat customer data found, returning default values');
+        return res.status(200).json({ repeat_customers: 0, new_customers: 0 });
+      } else {
+        throw new Error(`Database query failed: ${error.message}`);
+      }
     }
+    
+    console.log('Retrieved repeat customer ratio data');
     
     // Return the repeat ratio data
     res.status(200).json(data || { repeat_customers: 0, new_customers: 0 });
   } catch (error) {
     console.error('API error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch repeat ratio data' });
+    res.status(500).json({ 
+      error: error.message || 'Failed to fetch repeat ratio data',
+      code: error.code
+    });
   }
 } 

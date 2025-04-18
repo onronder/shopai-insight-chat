@@ -1,45 +1,58 @@
-
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
-import { Customer } from "@/types/customer-types";
-import { CustomerSegmentBadge } from "./CustomerSegmentBadge";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
+import { SegmentData } from "@/hooks/useCustomersData";
 
-interface CustomerSegmentsTableProps {
-  customers: Customer[];
+export interface CustomerSegmentsTableProps {
+  data: SegmentData[];
 }
 
-export const CustomerSegmentsTable: React.FC<CustomerSegmentsTableProps> = ({ customers }) => {
+export const CustomerSegmentsTable: React.FC<CustomerSegmentsTableProps> = ({ data }) => {
+  // Sort data by customer count (descending)
+  const sortedData = [...data].sort((a, b) => b.customer_count - a.customer_count);
+  
+  // Calculate total customers for percentage
+  const totalCustomers = sortedData.reduce((sum, segment) => sum + segment.customer_count, 0);
+  
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Email</TableHead>
-          <TableHead>Lifetime Value</TableHead>
-          <TableHead>Last Order</TableHead>
-          <TableHead>Segment</TableHead>
-          <TableHead className="w-10"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {customers.map((customer) => (
-          <TableRow key={customer.id} className="hover:bg-muted/50 cursor-pointer">
-            <TableCell className="font-medium">{customer.name}</TableCell>
-            <TableCell>{customer.email}</TableCell>
-            <TableCell>${customer.ltv.toFixed(2)}</TableCell>
-            <TableCell>{customer.lastOrder ? new Date(customer.lastOrder).toLocaleDateString() : "N/A"}</TableCell>
-            <TableCell>{customer.segment ? <CustomerSegmentBadge segment={customer.segment} /> : <Badge>New</Badge>}</TableCell>
-            <TableCell>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <Card>
+      <CardHeader>
+        <CardTitle>Customer Segments</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Segment</TableHead>
+              <TableHead>Customers</TableHead>
+              <TableHead>%</TableHead>
+              <TableHead>Avg. Order Value</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedData.map((segment) => (
+              <TableRow key={segment.segment} className="hover:bg-muted/50">
+                <TableCell className="font-medium">{segment.segment}</TableCell>
+                <TableCell>{segment.customer_count.toLocaleString()}</TableCell>
+                <TableCell>
+                  {totalCustomers > 0 
+                    ? `${((segment.customer_count / totalCustomers) * 100).toFixed(1)}%` 
+                    : '0%'}
+                </TableCell>
+                <TableCell>{formatCurrency(segment.avg_order_value)}</TableCell>
+              </TableRow>
+            ))}
+            {sortedData.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                  No customer segments available
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 };
