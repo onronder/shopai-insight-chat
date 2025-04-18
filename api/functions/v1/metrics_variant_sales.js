@@ -33,19 +33,12 @@ export default async function handler(req, res) {
     
     console.log('Fetching variant sales data...', { timeframe });
     
-    // Query the variant_sales view with optional timeframe filter
-    let query = supabase
+    // Query the variant_sales view
+    const { data, error } = await supabase
       .from('vw_variant_sales')
-      .select('variant_title, total_sales')
+      .select('variant_id, variant_title, total_sales')
       .order('total_sales', { ascending: false })
       .limit(10); // Limit to top 10 selling variants
-    
-    // Apply timeframe filter if specified in the database view and the column exists
-    if (timeframe && timeframe !== 'all') {
-      query = query.eq('timeframe', timeframe);
-    }
-    
-    const { data, error } = await query;
     
     if (error) {
       console.error('Database query error:', error);
@@ -53,20 +46,10 @@ export default async function handler(req, res) {
       // Check for specific error types
       if (error.code === '42P01') {
         throw new Error('The variant sales view does not exist. Please run the database migrations.');
-      } else if (error.code === '42703' && error.message.includes('timeframe')) {
-        // If the error is about the timeframe column not existing, retry without the filter
-        console.warn('Timeframe filtering not supported for this view, retrying without filter');
-        const { data: retryData, error: retryError } = await supabase
-          .from('vw_variant_sales')
-          .select('variant_title, total_sales')
-          .order('total_sales', { ascending: false })
-          .limit(10);
-          
-        if (retryError) {
-          throw new Error(`Database query failed on retry: ${retryError.message}`);
-        }
-        
-        return res.status(200).json(retryData || []);
+      } else if (error.code === '42703') {
+        // Handle column does not exist errors
+        console.error('Column referenced in query does not exist:', error.message);
+        throw new Error(`Schema mismatch: ${error.message}`);
       } else {
         throw new Error(`Database query failed: ${error.message}`);
       }
@@ -78,8 +61,14 @@ export default async function handler(req, res) {
       console.log(`Retrieved ${data.length} variant sales records`);
     }
     
+    // Transform the data if needed to match frontend expectations
+    const transformedData = data ? data.map(item => ({
+      variant_title: item.variant_title || 'Unknown Variant',
+      total_sales: item.total_sales
+    })) : [];
+    
     // Return the variant sales data
-    res.status(200).json(data || []);
+    res.status(200).json(transformedData);
   } catch (error) {
     console.error('API error:', error);
     res.status(500).json({ 
