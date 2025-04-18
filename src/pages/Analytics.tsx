@@ -38,12 +38,17 @@ const Analytics: React.FC = () => {
   const {
     isLoading,
     error,
+    errorMessage,
     salesData,
     funnelData,
     customerTypeData,
     topCountriesData,
     refetch,
-    hasData
+    hasData,
+    timeframe,
+    setTimeframe,
+    view,
+    setView
   } = useAnalyticsData()
   
   // Track which charts are loading independently
@@ -77,7 +82,7 @@ const Analytics: React.FC = () => {
         <SyncStatusBanner />
         <ErrorState 
           title="Failed to load analytics data" 
-          description={error.message} 
+          description={errorMessage || "An unknown error occurred"} 
           action={<Button onClick={() => refetch()}>Retry</Button>}
         />
       </AppLayout>
@@ -97,9 +102,48 @@ const Analytics: React.FC = () => {
     )
   }
 
+  // View controls for time period
+  const viewOptions = [
+    { label: "Daily", value: "daily" },
+    { label: "Weekly", value: "weekly" },
+    { label: "Monthly", value: "monthly" }
+  ];
+
+  // Timeframe options
+  const timeframeOptions = [
+    { label: "Last 7 days", value: "last7" },
+    { label: "Last 30 days", value: "last30" },
+    { label: "Last 90 days", value: "last90" },
+    { label: "Year to date", value: "ytd" },
+    { label: "All time", value: "all" }
+  ];
+
   return (
     <AppLayout>
       <SyncStatusBanner />
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Analytics</h1>
+        <div className="flex gap-2">
+          <select 
+            className="p-2 border rounded"
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value)}
+          >
+            {timeframeOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <select 
+            className="p-2 border rounded"
+            value={view}
+            onChange={(e) => setView(e.target.value)}
+          >
+            {viewOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
       <Tabs defaultValue="sales">
         <TabsList className="mb-4">
           <TabsTrigger value="sales">Sales Overview</TabsTrigger>
