@@ -33,17 +33,7 @@ ORDER BY
 
 -- Create or replace LTV distribution view
 CREATE OR REPLACE VIEW vw_ltv_distribution AS
-SELECT
-  CASE
-    WHEN total_spent >= 1000 THEN '$1000+'
-    WHEN total_spent >= 500 THEN '$500-999'
-    WHEN total_spent >= 250 THEN '$250-499'
-    WHEN total_spent >= 100 THEN '$100-249'
-    WHEN total_spent > 0 THEN '$1-99'
-    ELSE '$0'
-  END AS bucket,
-  COUNT(*) AS count
-FROM (
+WITH customer_ltv AS (
   SELECT
     c.id,
     COALESCE(SUM(o.total_price), 0) AS total_spent
@@ -55,8 +45,8 @@ FROM (
     c.store_id IS NOT NULL
   GROUP BY
     c.id
-) customer_ltv
-GROUP BY
+)
+SELECT
   CASE
     WHEN total_spent >= 1000 THEN '$1000+'
     WHEN total_spent >= 500 THEN '$500-999'
@@ -64,49 +54,19 @@ GROUP BY
     WHEN total_spent >= 100 THEN '$100-249'
     WHEN total_spent > 0 THEN '$1-99'
     ELSE '$0'
-  END
+  END AS bucket,
+  COUNT(*) AS count
+FROM 
+  customer_ltv
+GROUP BY
+  1
 ORDER BY
-  CASE
-    WHEN CASE
-      WHEN total_spent >= 1000 THEN '$1000+'
-      WHEN total_spent >= 500 THEN '$500-999'
-      WHEN total_spent >= 250 THEN '$250-499'
-      WHEN total_spent >= 100 THEN '$100-249'
-      WHEN total_spent > 0 THEN '$1-99'
-      ELSE '$0'
-    END = '$1000+' THEN 6
-    WHEN CASE
-      WHEN total_spent >= 1000 THEN '$1000+'
-      WHEN total_spent >= 500 THEN '$500-999'
-      WHEN total_spent >= 250 THEN '$250-499'
-      WHEN total_spent >= 100 THEN '$100-249'
-      WHEN total_spent > 0 THEN '$1-99'
-      ELSE '$0'
-    END = '$500-999' THEN 5
-    WHEN CASE
-      WHEN total_spent >= 1000 THEN '$1000+'
-      WHEN total_spent >= 500 THEN '$500-999'
-      WHEN total_spent >= 250 THEN '$250-499'
-      WHEN total_spent >= 100 THEN '$100-249'
-      WHEN total_spent > 0 THEN '$1-99'
-      ELSE '$0'
-    END = '$250-499' THEN 4
-    WHEN CASE
-      WHEN total_spent >= 1000 THEN '$1000+'
-      WHEN total_spent >= 500 THEN '$500-999'
-      WHEN total_spent >= 250 THEN '$250-499'
-      WHEN total_spent >= 100 THEN '$100-249'
-      WHEN total_spent > 0 THEN '$1-99'
-      ELSE '$0'
-    END = '$100-249' THEN 3
-    WHEN CASE
-      WHEN total_spent >= 1000 THEN '$1000+'
-      WHEN total_spent >= 500 THEN '$500-999'
-      WHEN total_spent >= 250 THEN '$250-499'
-      WHEN total_spent >= 100 THEN '$100-249'
-      WHEN total_spent > 0 THEN '$1-99'
-      ELSE '$0'
-    END = '$1-99' THEN 2
+  CASE 
+    WHEN bucket = '$1000+' THEN 6
+    WHEN bucket = '$500-999' THEN 5
+    WHEN bucket = '$250-499' THEN 4
+    WHEN bucket = '$100-249' THEN 3
+    WHEN bucket = '$1-99' THEN 2
     ELSE 1
   END DESC;
 
