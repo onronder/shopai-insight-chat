@@ -1,10 +1,10 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
-import { ReturnRateItem } from "@/hooks/useProductsData";
+import { ReturnRate } from "@/hooks/useProductsData";
 
 interface ReturnRateChartProps {
-  data: ReturnRateItem[];
+  data: ReturnRate[];
 }
 
 export const ReturnRateChart: React.FC<ReturnRateChartProps> = ({ data }) => {
@@ -15,14 +15,14 @@ export const ReturnRateChart: React.FC<ReturnRateChartProps> = ({ data }) => {
     
   // Truncate long product names for display
   const chartData = sortedData.map(item => ({
-    name: item.product_title.length > 20 ? 
-      `${item.product_title.substring(0, 20)}...` : 
-      item.product_title,
-    rate: item.return_rate,
-    product_id: item.product_id,
-    full_name: item.product_title,
-    orders: item.orders_count,
-    returns: item.returns_count
+    name: item.title.length > 20 ? 
+      `${item.title.substring(0, 20)}...` : 
+      item.title,
+    rate: Math.round(item.return_rate * 100) / 100, // Round to 2 decimal places
+    variant_id: item.variant_id,
+    full_name: item.title,
+    orders: item.count,
+    returns: item.returns
   }));
 
   return (
@@ -37,7 +37,13 @@ export const ReturnRateChart: React.FC<ReturnRateChartProps> = ({ data }) => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 10 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
                 <YAxis tickFormatter={(value) => `${value}%`} />
                 <Tooltip 
                   formatter={(value, name, props) => [`${value}%`, "Return Rate"]}

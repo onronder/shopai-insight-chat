@@ -3,19 +3,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle } from "lucide-react";
-import { InventoryRiskItem } from "@/hooks/useProductsData";
+import { InventoryRisk } from "@/hooks/useProductsData";
 
 interface InventoryRiskTableProps {
-  data: InventoryRiskItem[];
+  data: InventoryRisk[];
 }
 
 export const InventoryRiskTable: React.FC<InventoryRiskTableProps> = ({ data }) => {
   // Helper function to get the badge variant based on risk type
   const getRiskBadgeVariant = (risk_type: string) => {
     switch(risk_type) {
-      case 'stockout': return 'destructive';
-      case 'low_stock': return 'warning';
-      case 'overstock': return 'secondary';
+      case 'understock': return 'destructive';
+      case 'optimal': return 'secondary';
+      case 'overstock': return 'warning';
       default: return 'outline';
     }
   };
@@ -23,10 +23,10 @@ export const InventoryRiskTable: React.FC<InventoryRiskTableProps> = ({ data }) 
   // Helper function to get the risk display text
   const getRiskDisplayText = (risk_type: string) => {
     switch(risk_type) {
-      case 'stockout': return 'Out of Stock';
-      case 'low_stock': return 'Low Stock';
+      case 'understock': return 'Low Stock';
+      case 'optimal': return 'Optimal';
       case 'overstock': return 'Overstock';
-      default: return 'Healthy';
+      default: return 'Unknown';
     }
   };
 
@@ -41,38 +41,39 @@ export const InventoryRiskTable: React.FC<InventoryRiskTableProps> = ({ data }) 
       </CardHeader>
       <CardContent>
         {data.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Variant</TableHead>
-                <TableHead>Current Stock</TableHead>
-                <TableHead>Reorder Point</TableHead>
-                <TableHead>Sales Velocity</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((item) => (
-                <TableRow key={`${item.product_id}-${item.variant_title}`}>
-                  <TableCell className="font-medium">{item.product_title}</TableCell>
-                  <TableCell>{item.variant_title}</TableCell>
-                  <TableCell className={item.risk_type === 'stockout' || item.risk_type === 'low_stock' ? "text-red-500 font-medium" : ""}>
-                    {item.inventory_level} units
-                  </TableCell>
-                  <TableCell>{item.reorder_point || 'N/A'}</TableCell>
-                  <TableCell>{item.sales_velocity?.toFixed(2) || '0'} units/day</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={getRiskBadgeVariant(item.risk_type) as any}
-                    >
-                      {getRiskDisplayText(item.risk_type)}
-                    </Badge>
-                  </TableCell>
+          <div className="max-h-[500px] overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Current Stock</TableHead>
+                  <TableHead>Risk Score</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {data.map((item) => (
+                  <TableRow key={item.variant_id}>
+                    <TableCell className="font-medium">{item.title}</TableCell>
+                    <TableCell>{item.sku || 'N/A'}</TableCell>
+                    <TableCell className={item.risk_type === 'understock' ? "text-red-500 font-medium" : ""}>
+                      {item.inventory} units
+                    </TableCell>
+                    <TableCell>{Math.abs(item.value).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={getRiskBadgeVariant(item.risk_type) as any}
+                        className="whitespace-nowrap"
+                      >
+                        {getRiskDisplayText(item.risk_type)}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         ) : (
           <div className="py-8 text-center text-muted-foreground">
             No inventory risks detected
