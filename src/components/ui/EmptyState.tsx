@@ -1,15 +1,15 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from './card';
 import { Button } from './button';
 import { PlusCircle, AlertCircle } from 'lucide-react';
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   title: string;
   description: string;
   icon?: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
+  action?: React.ReactNode;
 }
 
 /**
@@ -21,6 +21,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   icon = <AlertCircle className="h-12 w-12 text-muted-foreground/50" />,
   actionLabel,
   onAction,
+  action,
 }) => {
   return (
     <Card className="w-full text-center">
@@ -31,14 +32,18 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           <p className="text-muted-foreground">{description}</p>
         </div>
       </CardContent>
-      {actionLabel && onAction && (
+      {(actionLabel && onAction) || action ? (
         <CardFooter className="flex justify-center pb-10">
-          <Button onClick={onAction}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {actionLabel}
-          </Button>
+          {action ? (
+            action
+          ) : actionLabel && onAction ? (
+            <Button onClick={onAction}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {actionLabel}
+            </Button>
+          ) : null}
         </CardFooter>
-      )}
+      ) : null}
     </Card>
   );
 };

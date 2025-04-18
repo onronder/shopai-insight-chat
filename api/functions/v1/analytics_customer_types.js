@@ -21,11 +21,14 @@ export default async function handler(req, res) {
     }
     
     if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase credentials');
       throw new Error('Supabase credentials are not configured');
     }
     
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    console.log('Fetching analytics customer types data...');
     
     // Query the analytics_customer_types view
     const { data, error } = await supabase
@@ -34,13 +37,29 @@ export default async function handler(req, res) {
       .order('count', { ascending: false });
     
     if (error) {
-      throw new Error(`Database query failed: ${error.message}`);
+      console.error('Database query error:', error);
+      
+      // Check for specific error types
+      if (error.code === '42P01') {
+        throw new Error('The analytics customer types view does not exist. Please run the database migrations.');
+      } else {
+        throw new Error(`Database query failed: ${error.message}`);
+      }
+    }
+    
+    if (!data || data.length === 0) {
+      console.warn('No customer types data found');
+    } else {
+      console.log(`Retrieved ${data.length} customer types`);
     }
     
     // Return the customer types data
     res.status(200).json(data || []);
   } catch (error) {
     console.error('API error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch customer types data' });
+    res.status(500).json({ 
+      error: error.message || 'Failed to fetch customer types data',
+      code: error.code
+    });
   }
 } 

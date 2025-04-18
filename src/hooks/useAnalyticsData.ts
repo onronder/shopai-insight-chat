@@ -63,6 +63,16 @@ export const useAnalyticsData = () => {
     queryFn: () => fetcher("/functions/v1/analytics_top_countries")
   })
 
+  // Returns a Promise that resolves when all refetches are done
+  const refetchAll = async () => {
+    return Promise.all([
+      sales.refetch(),
+      funnel.refetch(),
+      customerTypes.refetch(),
+      topCountries.refetch()
+    ])
+  }
+
   return {
     isLoading: sales.isLoading || funnel.isLoading || customerTypes.isLoading || topCountries.isLoading,
     error: sales.error || funnel.error || customerTypes.error || topCountries.error,
@@ -70,12 +80,7 @@ export const useAnalyticsData = () => {
     funnelData: funnel.data || [],
     customerTypeData: customerTypes.data || [],
     topCountriesData: topCountries.data || [],
-    refetch: () => {
-      sales.refetch()
-      funnel.refetch()
-      customerTypes.refetch()
-      topCountries.refetch()
-    },
+    refetch: refetchAll,
     timeframe: "last30", // placeholder
     view: "daily",       // placeholder
     setTimeframe: () => {},
