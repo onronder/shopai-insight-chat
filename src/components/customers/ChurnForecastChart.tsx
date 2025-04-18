@@ -9,20 +9,20 @@ export interface ChurnForecastChartProps {
 }
 
 export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({ data }) => {
-  // Sort by days inactive (most inactive first)
-  const sortedData = [...data].sort((a, b) => b.days_inactive - a.days_inactive);
+  // Sort by days since last order (most inactive first)
+  const sortedData = [...data].sort((a, b) => b.days_since_last_order - a.days_since_last_order);
   
   // Calculate churn risk level 
-  const getRiskLevel = (days: number) => {
-    if (days >= 90) return "High";
-    if (days >= 60) return "Medium";
+  const getRiskLevel = (days: number, riskScore: number) => {
+    if (riskScore >= 80) return "High";
+    if (riskScore >= 60) return "Medium";
     return "Low";
   };
   
   // Get the icon color based on risk level
-  const getRiskColor = (days: number) => {
-    if (days >= 90) return "text-red-500";
-    if (days >= 60) return "text-amber-500";
+  const getRiskColor = (days: number, riskScore: number) => {
+    if (riskScore >= 80) return "text-red-500";
+    if (riskScore >= 60) return "text-amber-500";
     return "text-green-500";
   };
   
@@ -42,23 +42,23 @@ export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({ data }) 
               <TableHeader>
                 <TableRow>
                   <TableHead>Email</TableHead>
-                  <TableHead>Days Inactive</TableHead>
+                  <TableHead>Days Since Order</TableHead>
                   <TableHead>Risk Level</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedData.map((customer) => (
-                  <TableRow key={customer.id}>
+                  <TableRow key={customer.customer_id}>
                     <TableCell>{customer.email}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>{customer.days_inactive} days</span>
+                        <span>{customer.days_since_last_order} days</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className={`font-medium ${getRiskColor(customer.days_inactive)}`}>
-                        {getRiskLevel(customer.days_inactive)}
+                      <div className={`font-medium ${getRiskColor(customer.days_since_last_order, customer.risk_score)}`}>
+                        {getRiskLevel(customer.days_since_last_order, customer.risk_score)}
                       </div>
                     </TableCell>
                   </TableRow>
