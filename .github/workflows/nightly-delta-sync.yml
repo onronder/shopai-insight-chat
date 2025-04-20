@@ -1,0 +1,16 @@
+name: Nightly Delta Sync
+
+on:
+  schedule:
+    - cron: '30 0 * * *'  # Runs daily at 00:30 UTC
+  workflow_dispatch:      # Enables manual trigger
+
+jobs:
+  call-delta-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cron_delta_sync (Supabase)
+        run: |
+          curl -X POST "${{ secrets.PROJECT_BASE_URL }}/functions/v1/cron_delta_sync" \
+            -H "Authorization: Bearer ${{ secrets.PROJECT_AUTOMATION_TOKEN }}" \
+            -H "Content-Type: application/json"
