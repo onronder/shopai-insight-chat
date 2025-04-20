@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { TimeframeSelector } from "@/components/shared/TimeframeSelector";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { TimeframeSelector } from "@/components/ui/TimeframeSelector";
+
 
 export const CustomerSegmentsTable = () => {
   const { 

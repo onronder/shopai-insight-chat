@@ -6,9 +6,10 @@ import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
-// Environment variables
+// Env
 const SHOPIFY_API_KEY = Deno.env.get("PROJECT_SHOPIFY_API_KEY")!;
 const SHOPIFY_API_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
+const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
 const SUPABASE_URL = Deno.env.get("PROJECT_SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!;
 
@@ -48,6 +49,25 @@ serve(async (req) => {
 
     const { access_token } = await tokenRes.json();
 
+    // Fetch timezone from Shopify
+    const timezoneRes = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/shop.json`, {
+      headers: {
+        "X-Shopify-Access-Token": access_token,
+        "Content-Type": "application/json",
+      },
+    });
+
+    let iana_timezone: string | null = null;
+
+    if (timezoneRes.ok) {
+      const json = await timezoneRes.json();
+      iana_timezone = json?.shop?.iana_timezone || null;
+    } else {
+      logError("shopify_oauth_callback", "Failed to fetch timezone from shop.json", {
+        status: timezoneRes.status,
+      });
+    }
+
     // Check if store exists
     const { data: existing, error: fetchError } = await supabase
       .from("stores")
@@ -58,11 +78,14 @@ serve(async (req) => {
     let store_id = existing?.id;
 
     if (store_id) {
-      await supabase.from("stores").update({ access_token }).eq("id", store_id);
+      await supabase
+        .from("stores")
+        .update({ access_token, iana_timezone })
+        .eq("id", store_id);
     } else {
       const { data, error } = await supabase
         .from("stores")
-        .insert({ shop_domain: shop, access_token })
+        .insert({ shop_domain: shop, access_token, iana_timezone })
         .select("id")
         .single();
 
@@ -74,13 +97,13 @@ serve(async (req) => {
       store_id = data.id;
     }
 
-    // Generate signed JWT for the session
+    // Generate signed JWT
     const now = Math.floor(Date.now() / 1000);
     const jwt = await createJWT({
       sub: store_id,
       role: "authenticated",
       iat: now,
-      exp: now + 60 * 60, // 1 hour expiration
+      exp: now + 60 * 60,
     });
 
     const headers = new Headers();
@@ -89,6 +112,7 @@ serve(async (req) => {
 
     logInfo("shopify_oauth_callback", "JWT issued and user redirected", {
       store_id,
+      timezone: iana_timezone,
       duration_ms: performance.now() - start,
     });
 

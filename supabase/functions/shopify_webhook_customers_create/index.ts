@@ -1,5 +1,3 @@
-// File: supabase/functions/shopify_webhook_customers_create/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import "https://deno.land/x/dotenv/load.ts";
@@ -21,6 +19,7 @@ serve(async (req) => {
       Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
     );
 
+    // Identify store
     const { data: store, error: storeError } = await supabase
       .from("shopify_stores")
       .select("id")
@@ -32,28 +31,46 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(404, "Store not found"));
     }
 
-    await supabase.from("shopify_customers").upsert({
-      shopify_customer_id: payload.id.toString(),
-      email: payload.email,
-      first_name: payload.first_name,
-      last_name: payload.last_name,
+    const customerData = {
+      shopify_customer_id: payload.id?.toString(),
+      email: payload.email || null,
+      first_name: payload.first_name || null,
+      last_name: payload.last_name || null,
+      phone: payload.phone || null,
+      verified_email: payload.verified_email ?? null,
       store_id: store.id,
-    });
+      source_updated_at: payload.updated_at ? new Date(payload.updated_at) : null,
+      shopify_synced_at: new Date()
+    };
+
+    const { error: upsertError } = await supabase
+      .from("shopify_customers")
+      .upsert(customerData)
+      .select("id")
+      .single();
+
+    if (upsertError) {
+      logError("shopify_webhook_customers_create", upsertError.message, {
+        customer_id: payload.id,
+        store_id: store.id
+      });
+
+      return addSecurityHeaders(returnJsonError(500, "Upsert failed"));
+    }
 
     await supabase.from("webhook_logs").insert({
       store_id: store.id,
       topic: "customers/create",
-      shopify_customer_id: payload.id.toString(),
+      shopify_customer_id: payload.id?.toString(),
       payload,
     });
 
-    logInfo("shopify_webhook_customers_create", "Customer created", {
+    logInfo("shopify_webhook_customers_create", "Customer created or updated", {
       store_id: store.id,
-      shopify_customer_id: payload.id.toString(),
+      shopify_customer_id: payload.id?.toString()
     });
 
-    const res = new Response("OK", { status: 200 });
-    return addSecurityHeaders(res);
+    return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
     logError("shopify_webhook_customers_create", err, { path });
     return addSecurityHeaders(returnJsonError(500, "Webhook Error"));

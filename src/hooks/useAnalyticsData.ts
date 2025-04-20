@@ -15,18 +15,14 @@ export interface FunnelStep {
   count: number
 }
 
-export interface ChannelRevenue {
-  channel: string
-  value: number
-}
-
 export interface CustomerTypeBreakdown {
   type: string
   count: number
 }
 
-export interface CountryData {
-  country: string
+export interface GeoPoint {
+  lat: number
+  lng: number
   value: number
 }
 
@@ -37,20 +33,10 @@ const getAuthHeaders = async () => {
 }
 
 const fetcher = async (url: string) => {
-  try {
-    const headers = await getAuthHeaders()
-    const res = await fetch(url, { headers })
-    
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => "Unknown error")
-      throw new Error(`Failed to fetch ${url}: ${res.status} - ${errorText}`)
-    }
-    
-    return res.json()
-  } catch (error) {
-    console.error(`Error fetching ${url}:`, error)
-    throw error
-  }
+  const headers = await getAuthHeaders()
+  const res = await fetch(url, { headers })
+  if (!res.ok) throw new Error(`Failed to fetch ${url}`)
+  return res.json()
 }
 
 export const useAnalyticsData = () => {
@@ -60,182 +46,85 @@ export const useAnalyticsData = () => {
   const sales = useQuery<SalesOverviewPoint[]>({
     queryKey: ["analytics_sales", timeframe, view],
     queryFn: async () => {
-      try {
-        const data = await fetcher(`/functions/v1/analytics_sales_overview?timeframe=${timeframe}&view=${view}`)
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            period: item.period || item.date || item.month || "",
-            revenue: typeof item.revenue === 'number' ? item.revenue : parseFloat(item.revenue) || 0,
-            net: typeof item.net === 'number' ? item.net : parseFloat(item.net) || 0,
-            refunds: typeof item.refunds === 'number' ? item.refunds : parseFloat(item.refunds) || 0,
-            orders: typeof item.orders === 'number' ? item.orders : parseInt(item.orders) || 0
-          }))
-        } else if (data && data.data && Array.isArray(data.data)) {
-          // Alternative response structure
-          return data.data.map(item => ({
-            period: item.period || item.date || item.month || "",
-            revenue: typeof item.revenue === 'number' ? item.revenue : parseFloat(item.revenue) || 0,
-            net: typeof item.net === 'number' ? item.net : parseFloat(item.net) || 0,
-            refunds: typeof item.refunds === 'number' ? item.refunds : parseFloat(item.refunds) || 0,
-            orders: typeof item.orders === 'number' ? item.orders : parseInt(item.orders) || 0
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in analytics_sales_overview:", error)
-        throw error
-      }
+      const data = await fetcher(`/functions/v1/analytics_sales_overview?timeframe=${timeframe}&view=${view}`)
+      return data.map((item: any) => ({
+        period: item.period || item.date || item.month || "",
+        revenue: Number(item.revenue),
+        net: Number(item.net),
+        refunds: Number(item.refunds),
+        orders: Number(item.orders)
+      }))
     },
     retry: 2,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000
   })
 
   const funnel = useQuery<FunnelStep[]>({
     queryKey: ["analytics_funnel"],
     queryFn: async () => {
-      try {
-        const data = await fetcher("/functions/v1/analytics_funnel")
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            label: item.label || item.stage || item.step || "",
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0
-          }))
-        } else if (data && data.steps && Array.isArray(data.steps)) {
-          // Alternative response structure
-          return data.steps.map(item => ({
-            label: item.label || item.stage || item.step || "",
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in analytics_funnel:", error)
-        throw error
-      }
+      const data = await fetcher("/functions/v1/analytics_funnel")
+      return data.map((item: any) => ({
+        label: item.label || item.stage || item.step || "",
+        count: Number(item.count)
+      }))
     },
     retry: 2,
-    staleTime: 10 * 60 * 1000 // 10 minutes
+    staleTime: 10 * 60 * 1000
   })
 
   const customerTypes = useQuery<CustomerTypeBreakdown[]>({
     queryKey: ["analytics_customer_types"],
     queryFn: async () => {
-      try {
-        const data = await fetcher("/functions/v1/analytics_customer_types")
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            type: item.type || item.customer_type || "Unknown",
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0
-          }))
-        } else if (data && data.types && Array.isArray(data.types)) {
-          // Alternative response structure
-          return data.types.map(item => ({
-            type: item.type || item.customer_type || "Unknown",
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in analytics_customer_types:", error)
-        throw error
-      }
+      const data = await fetcher("/functions/v1/analytics_customer_types")
+      return data.map((item: any) => ({
+        type: item.type || item.customer_type || "Unknown",
+        count: Number(item.count)
+      }))
     },
     retry: 2,
     staleTime: 10 * 60 * 1000
   })
 
-  const topCountries = useQuery<CountryData[]>({
-    queryKey: ["analytics_top_countries"],
+  const geoHeatmap = useQuery<GeoPoint[]>({
+    queryKey: ["analytics_geo_heatmap"],
     queryFn: async () => {
-      try {
-        const data = await fetcher("/functions/v1/analytics_top_countries")
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            country: item.country || "Unknown",
-            value: typeof item.value === 'number' ? item.value : 
-                  (typeof item.count === 'number' ? item.count : 
-                  parseFloat(item.value) || parseInt(item.count) || 0)
-          }))
-        } else if (data && data.countries && Array.isArray(data.countries)) {
-          // Alternative response structure
-          return data.countries.map(item => ({
-            country: item.country || "Unknown",
-            value: typeof item.value === 'number' ? item.value : 
-                  (typeof item.count === 'number' ? item.count : 
-                  parseFloat(item.value) || parseInt(item.count) || 0)
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in analytics_top_countries:", error)
-        throw error
-      }
+      const data = await fetcher("/functions/v1/analytics_geo_heatmap")
+      return data.map((d: any) => ({
+        lat: Number(d.lat),
+        lng: Number(d.lng),
+        value: Number(d.total_orders ?? d.total_revenue ?? 0)
+      }))
     },
     retry: 2,
     staleTime: 10 * 60 * 1000
   })
 
-  // Returns a Promise that resolves when all refetches are done
-  const refetchAll = async () => {
-    try {
-      const results = await Promise.all([
-        sales.refetch(),
-        funnel.refetch(),
-        customerTypes.refetch(),
-        topCountries.refetch()
-      ])
-      
-      console.log("All analytics data refetched successfully")
-      return results
-    } catch (error) {
-      console.error("Error refetching analytics data:", error)
-      throw error
-    }
-  }
+  const isLoading = sales.isLoading || funnel.isLoading || customerTypes.isLoading || geoHeatmap.isLoading
+  const isFetching = sales.isFetching || funnel.isFetching || customerTypes.isFetching || geoHeatmap.isFetching
+  const error = sales.error || funnel.error || customerTypes.error || geoHeatmap.error
 
-  const isLoading = sales.isLoading || funnel.isLoading || customerTypes.isLoading || topCountries.isLoading
-  const isFetching = sales.isFetching || funnel.isFetching || customerTypes.isFetching || topCountries.isFetching
-  
-  // Aggregate all errors
-  const error = sales.error || funnel.error || customerTypes.error || topCountries.error
-  const errorMessage = error ? (error instanceof Error ? error.message : "Unknown error") : null
-
-  // Check if we have any data
-  const hasData = !!sales.data?.length || !!funnel.data?.length || 
-                 !!customerTypes.data?.length || !!topCountries.data?.length
+  const hasData = !!sales.data?.length || !!funnel.data?.length || !!customerTypes.data?.length || !!geoHeatmap.data?.length
 
   return {
     isLoading,
     isFetching,
     error,
-    errorMessage,
     salesData: sales.data || [],
     funnelData: funnel.data || [],
     customerTypeData: customerTypes.data || [],
-    topCountriesData: topCountries.data || [],
-    refetch: refetchAll,
+    geoHeatmapData: geoHeatmap.data || [],
+    refetch: async () => {
+      await Promise.all([
+        sales.refetch(),
+        funnel.refetch(),
+        customerTypes.refetch(),
+        geoHeatmap.refetch()
+      ])
+    },
     timeframe,
     view,
-    setTimeframe: (newTimeframe: string) => setTimeframe(newTimeframe),
-    setView: (newView: string) => setView(newView),
-    hasData,
-    status: {
-      sales: sales.status,
-      funnel: funnel.status,
-      customerTypes: customerTypes.status,
-      topCountries: topCountries.status
-    }
+    setTimeframe,
+    setView,
+    hasData
   }
 }

@@ -1,3 +1,5 @@
+// File: supabase/functions/shopify_sync_products/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logInfo, logError } from "../_shared/logging.ts";
@@ -29,79 +31,162 @@ serve(async () => {
     }
 
     for (const store of stores) {
-      const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250`;
-      const headers = {
-        "X-Shopify-Access-Token": store.access_token,
-        "Content-Type": "application/json",
-      };
+      const now = new Date().toISOString();
 
-      let pageUrl: string | null = baseUrl;
-      let synced = 0;
+      try {
+        await supabase
+          .from("stores")
+          .update({ sync_status: "syncing", sync_started_at: now })
+          .eq("id", store.id);
 
-      while (pageUrl) {
-        const res = await fetch(pageUrl, { headers });
-        if (!res.ok) {
-          const errorText = await res.text();
-          logError(context, "Shopify fetch failed", {
-            store: store.domain,
-            status: res.status,
-            error: errorText,
-          });
-          break;
-        }
+        const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250`;
+        const headers = {
+          "X-Shopify-Access-Token": store.access_token,
+          "Content-Type": "application/json",
+        };
 
-        const { products } = await res.json();
+        let pageUrl: string | null = baseUrl;
+        let synced = 0;
 
-        for (const p of products) {
-          const { id: shopify_product_id, title, variants } = p;
+        while (pageUrl) {
+          const res = await fetch(pageUrl, { headers });
+          if (!res.ok) {
+            const errorText = await res.text();
+            logError(context, "Shopify fetch failed", {
+              store: store.domain,
+              status: res.status,
+              error: errorText,
+            });
 
-          const { data: product, error: insertError } = await supabase
-            .from("shopify_products")
-            .upsert({
-              shopify_product_id: shopify_product_id.toString(),
+            await supabase.from("sync_errors").insert({
+              store_id: store.id,
+              function: context,
+              error: `Fetch failed: ${res.status} - ${errorText}`,
+              phase: "fetch",
+            });
+
+            break;
+          }
+
+          const { products } = await res.json();
+
+          for (const p of products) {
+            const {
+              id: shopify_product_id,
               title,
-              store_id: store.id,
-            })
-            .select("id")
-            .single();
+              product_type,
+              vendor,
+              tags,
+              variants,
+            } = p;
 
-          if (insertError || !product) {
-            logError(context, "Product upsert failed", {
-              product_id: shopify_product_id,
-              error: insertError?.message,
-            });
-            continue;
+            const { data: product, error: insertError } = await supabase
+              .from("shopify_products")
+              .upsert({
+                shopify_product_id: shopify_product_id.toString(),
+                title,
+                product_type: product_type || null,
+                vendor: vendor || null,
+                tags: tags || null,
+                store_id: store.id,
+                shopify_synced_at: new Date().toISOString(),
+              })
+              .select("id")
+              .single();
+
+            if (insertError || !product) {
+              logError(context, "Product upsert failed", {
+                store: store.domain,
+                shopify_product_id,
+                error: insertError?.message,
+              });
+
+              await supabase.from("sync_errors").insert({
+                store_id: store.id,
+                function: context,
+                error: `Product upsert failed: ${insertError?.message}`,
+                phase: "product",
+              });
+
+              continue;
+            }
+
+            const product_id = product.id;
+
+            for (const v of variants || []) {
+              const { error: variantError } = await supabase
+                .from("shopify_product_variants")
+                .upsert({
+                  shopify_variant_id: v.id.toString(),
+                  title: v.title,
+                  sku: v.sku,
+                  price: v.price ? parseFloat(v.price) : null,
+                  inventory_quantity: v.inventory_quantity ?? null,
+                  product_id,
+                  store_id: store.id,
+                  shopify_synced_at: new Date().toISOString(),
+                });
+
+              if (variantError) {
+                logError(context, "Variant upsert failed", {
+                  store: store.domain,
+                  variant_id: v.id,
+                  error: variantError.message,
+                });
+
+                await supabase.from("sync_errors").insert({
+                  store_id: store.id,
+                  function: context,
+                  error: `Variant upsert failed: ${variantError.message}`,
+                  phase: "variant",
+                });
+              }
+            }
+
+            synced++;
           }
 
-          const product_id = product.id;
-
-          for (const v of variants || []) {
-            await supabase.from("shopify_product_variants").upsert({
-              shopify_variant_id: v.id.toString(),
-              title: v.title,
-              sku: v.sku,
-              price: v.price ? parseFloat(v.price) : null,
-              inventory_quantity: v.inventory_quantity ?? null,
-              product_id,
-              store_id: store.id,
-            });
-          }
-
-          synced++;
+          const link = res.headers.get("link");
+          const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
+          pageUrl = nextUrl || null;
         }
 
-        const link = res.headers.get("link");
-        const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-        pageUrl = nextUrl || null;
-      }
+        await supabase
+          .from("stores")
+          .update({
+            sync_status: "completed",
+            sync_finished_at: new Date().toISOString(),
+          })
+          .eq("id", store.id);
 
-      logInfo(context, "Store product sync completed", {
-        store: store.domain,
-        products_synced: synced,
-      });
+        logInfo(context, "Store product sync completed", {
+          store: store.domain,
+          products_synced: synced,
+        });
+      } catch (err) {
+        await supabase.from("sync_errors").insert({
+          store_id: store.id,
+          function: context,
+          error: err?.message || "Unhandled error",
+          phase: "top-level",
+        });
+
+        await supabase
+          .from("stores")
+          .update({
+            sync_status: "failed",
+            sync_finished_at: new Date().toISOString(),
+          })
+          .eq("id", store.id);
+
+        logError(context, "Unhandled store sync error", {
+          store: store.domain,
+          error: err,
+        });
+      }
     }
 
-    logInfo(context, "Full sync completed", {
+    logInfo(context, "Full product sync completed", {
       duration_ms: performance.now() - startTime,
     });
 

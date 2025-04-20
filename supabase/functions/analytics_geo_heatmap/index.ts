@@ -1,13 +1,11 @@
-// File: supabase/functions/analytics_funnel/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyJWT } from "../_shared/jwt.ts";
-import { checkRateLimit, addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
+import { addSecurityHeaders, returnJsonError, checkRateLimit } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
-// Supabase admin client
+// Initialize Supabase admin client
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
@@ -18,12 +16,13 @@ serve(async (req) => {
   const path = new URL(req.url).pathname;
 
   try {
-    logInfo("analytics_funnel", "Request started", { path });
+    logInfo("analytics_geo_heatmap", "Request started", { path });
 
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
 
     let store_id: string | null = null;
+
     try {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user?.id) store_id = user.id;
@@ -46,56 +45,38 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
     }
 
-    // Real Shopify funnel metrics — based on financial + fulfillment statuses
-    const { data: orders, error } = await supabase
-      .from("shopify_orders")
-      .select("financial_status, fulfillment_status")
+    const { data, error } = await supabase
+      .from("vw_sales_geo_enriched")
+      .select("city, state, country, lat, lng, total_orders, total_revenue")
       .eq("store_id", store_id)
-      .is("is_deleted", false);
+      .not("lat", "is", null)
+      .not("lng", "is", null)
+      .order("total_orders", { ascending: false })
+      .limit(500); // Limit for performance
 
     if (error) {
-      logError("analytics_funnel", error.message, { store_id });
-      return addSecurityHeaders(returnJsonError(500, "Failed to fetch orders for funnel"));
+      logError("analytics_geo_heatmap", error, { store_id });
+      return addSecurityHeaders(returnJsonError(500, "Failed to fetch geographic data"));
     }
 
-    const funnelStages = {
-      placed: 0,
-      paid: 0,
-      fulfilled: 0
-    };
+    const response = (data ?? []).map(row => ({
+      city: row.city,
+      state: row.state,
+      country: row.country,
+      lat: row.lat,
+      lng: row.lng,
+      orders: row.total_orders,
+      revenue: row.total_revenue
+    }));
 
-    for (const order of orders || []) {
-      funnelStages.placed += 1;
-
-      if (
-        order.financial_status &&
-        ["paid", "partially_paid", "authorized"].includes(order.financial_status)
-      ) {
-        funnelStages.paid += 1;
-      }
-
-      if (
-        order.fulfillment_status &&
-        ["fulfilled", "shipped"].includes(order.fulfillment_status)
-      ) {
-        funnelStages.fulfilled += 1;
-      }
-    }
-
-    const funnel = [
-      { label: "Orders Placed", count: funnelStages.placed },
-      { label: "Paid Orders", count: funnelStages.paid },
-      { label: "Fulfilled Orders", count: funnelStages.fulfilled }
-    ];
-
-    logInfo("analytics_funnel", "Funnel generated", {
+    logInfo("analytics_geo_heatmap", "Success", {
       store_id,
-      duration_ms: performance.now() - startTime,
-      records: funnel.length
+      count: response.length,
+      duration_ms: performance.now() - startTime
     });
 
     return addSecurityHeaders(
-      new Response(JSON.stringify(funnel), {
+      new Response(JSON.stringify(response), {
         status: 200,
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +85,7 @@ serve(async (req) => {
       })
     );
   } catch (err) {
-    logError("analytics_funnel", err, { path });
+    logError("analytics_geo_heatmap", err, { path });
     return addSecurityHeaders(returnJsonError(500, "Internal Server Error"));
   }
 });

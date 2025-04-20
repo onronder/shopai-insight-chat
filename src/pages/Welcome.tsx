@@ -1,97 +1,117 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/components/ui/use-toast";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ROUTES } from "@/utils/constants";
+// File: src/pages/Welcome.tsx
 
-// Import refactored components
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SyncProgress, SyncStatusType } from "@/components/welcome/SyncProgress";
 import { FeaturesList } from "@/components/welcome/FeaturesList";
 import { SampleQuestions } from "@/components/welcome/SampleQuestions";
 import { WelcomeHeader } from "@/components/welcome/WelcomeHeader";
 import { NavigationButtons } from "@/components/welcome/NavigationButtons";
+import { useStoreSyncStatus } from "@/hooks/useStoreSyncStatus";
+import { supabase } from "@/integrations/supabase/client";
+import { ROUTES } from "@/utils/constants";
 
-// Mock store context - In a real app, this would come from a hook or context provider
 interface StoreContext {
   shopDomain: string;
   shopName: string;
 }
 
-const mockStoreContext: StoreContext = {
-  shopDomain: 'flowtechstest.myshopify.com',
-  shopName: 'FlowTechs Test Shop'
-};
-
-// TODO: Replace static or placeholder content with live data
-
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState<SyncStatusType>({
-    orders: "syncing",
-    products: "pending",
-    customers: "pending",
-  });
-  
-  const [syncProgress, setSyncProgress] = useState(15);
+  const [storeContext, setStoreContext] = useState<StoreContext | null>(null);
+  const [loadingStoreInfo, setLoadingStoreInfo] = useState(true);
+
+  const {
+    syncStatus,
+    syncStartedAt,
+    syncFinishedAt,
+    updatedAt,
+    isLoading: syncLoading,
+    isError,
+    error,
+    refetch,
+  } = useStoreSyncStatus();
+
   const [syncComplete, setSyncComplete] = useState(false);
-  const [storeContext, setStoreContext] = useState<StoreContext | null>(mockStoreContext);
-  
-  // Initial loading simulation
+
+  const isFullySynced =
+    syncStatus === "completed" ||
+    (syncStartedAt && syncFinishedAt && new Date(syncFinishedAt) > new Date(syncStartedAt));
+
+  // Determine step-based progress based on real timestamps
+  const syncProgress = (() => {
+    if (!syncStartedAt) return 0;
+    if (!syncFinishedAt) return 50; // syncing
+    return 100; // complete
+  })();
+
+  const computedStatus: SyncStatusType = {
+    orders:
+      syncProgress === 100 ? "completed" : syncProgress >= 10 ? "syncing" : "pending",
+    products:
+      syncProgress === 100 ? "completed" : syncProgress >= 30 ? "syncing" : "pending",
+    customers:
+      syncProgress === 100 ? "completed" : syncProgress >= 70 ? "syncing" : "pending",
+  };
+
   useEffect(() => {
-    const loadingTimer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-    
-    return () => clearTimeout(loadingTimer);
-  }, []);
-  
-  // Simulate sync progress
+    if (isFullySynced && !syncComplete) {
+      setSyncComplete(true);
+      toast({
+        title: "Sync complete",
+        description: "Your store data has been successfully imported",
+      });
+    }
+  }, [isFullySynced]);
+
   useEffect(() => {
-    if (loading) return;
-    
-    const timer = setTimeout(() => {
-      if (syncProgress >= 100) {
-        setSyncComplete(true);
-        toast({
-          title: "Sync complete",
-          description: "Your store data has been successfully imported"
-        });
+    const fetchStoreMeta = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const storeId = sessionData.session?.user?.id;
+
+      if (!storeId) {
+        setLoadingStoreInfo(false);
         return;
       }
-      
-      // Update sync status based on progress
-      if (syncProgress > 15 && syncProgress < 40) {
-        setSyncStatus(prev => ({ ...prev, orders: "completed", products: "syncing" }));
-      } else if (syncProgress >= 40 && syncProgress < 90) {
-        setSyncStatus(prev => ({ ...prev, products: "completed", customers: "syncing" }));
-      } else if (syncProgress >= 90) {
-        setSyncStatus(prev => ({ ...prev, customers: "completed" }));
+
+      const { data, error } = await supabase
+        .from("stores")
+        .select("shop_domain")
+        .eq("id", storeId)
+        .maybeSingle();
+
+      if (error || !data) {
+        setLoadingStoreInfo(false);
+        return;
       }
-      
-      setSyncProgress(prev => Math.min(prev + 5, 100));
-    }, 600);
-    
-    return () => clearTimeout(timer);
-  }, [syncProgress, loading]);
-  
+
+      const domain = data.shop_domain;
+      const shopName = domain?.split(".")[0] || "Your Store";
+
+      setStoreContext({ shopDomain: domain, shopName });
+      setLoadingStoreInfo(false);
+    };
+
+    fetchStoreMeta();
+  }, []);
+
   const goToDashboard = () => {
-    // Set onboarding flag before navigating to dashboard
-    localStorage.setItem('onboardingCompleted', 'true');
+    localStorage.setItem("onboardingCompleted", "true");
     navigate(ROUTES.DASHBOARD);
   };
-  
+
   const skipAndExplore = () => {
-    // Set onboarding flag even when skipping
-    localStorage.setItem('onboardingCompleted', 'true');
+    localStorage.setItem("onboardingCompleted", "true");
     navigate(ROUTES.DASHBOARD);
   };
-  
-  if (loading) {
+
+  if (loadingStoreInfo || syncLoading) {
     return (
       <AppLayout>
         <div className="container mx-auto py-8">
@@ -110,8 +130,7 @@ const Welcome: React.FC = () => {
       </AppLayout>
     );
   }
-  
-  // Empty state if store data couldn't be fetched
+
   if (!storeContext || !storeContext.shopDomain) {
     return (
       <AppLayout>
@@ -127,29 +146,18 @@ const Welcome: React.FC = () => {
     );
   }
 
-  const storeName = storeContext.shopDomain.split('.')[0];
-
   return (
     <AppLayout>
       <div className="container mx-auto py-8 space-y-8 max-w-4xl">
-        <WelcomeHeader storeName={storeName} />
-        
-        {/* Sync Progress Component */}
-        <SyncProgress 
-          syncStatus={syncStatus}
+        <WelcomeHeader storeName={storeContext.shopName} />
+        <SyncProgress
+          syncStatus={computedStatus}
           syncProgress={syncProgress}
           syncComplete={syncComplete}
         />
-        
-        {/* Features List Component */}
         <FeaturesList />
-        
-        {/* Sample Questions Component */}
         <SampleQuestions />
-        
         <Separator className="my-6" />
-        
-        {/* Navigation Buttons Component */}
         <NavigationButtons
           syncComplete={syncComplete}
           onSkip={skipAndExplore}

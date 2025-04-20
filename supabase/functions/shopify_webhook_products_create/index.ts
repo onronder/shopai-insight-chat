@@ -1,4 +1,4 @@
-// supabase/functions/shopify_webhook_products_create/index.ts
+// File: supabase/functions/shopify_webhook_products_create/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -36,11 +36,16 @@ serve(async (req) => {
       return returnJsonError(400, "Missing product ID");
     }
 
+    const now = new Date().toISOString();
+
+    // ✅ Upsert product with enrichment
     const { data: product, error: productError } = await supabase
       .from("shopify_products")
       .upsert({
         shopify_product_id,
         title: payload.title,
+        product_type: payload.product_type || null,
+        shopify_synced_at: now,
         store_id: store.id,
       })
       .select("id")
@@ -56,13 +61,14 @@ serve(async (req) => {
 
     for (const v of payload.variants || []) {
       await supabase.from("shopify_product_variants").upsert({
-        shopify_variant_id: v.id.toString(),
+        shopify_variant_id: v.id?.toString(),
         title: v.title,
         sku: v.sku,
         price: v.price ? parseFloat(v.price) : null,
         inventory_quantity: v.inventory_quantity ?? null,
         product_id: product.id,
         store_id: store.id,
+        shopify_synced_at: now, // ✅ variant sync time
       });
     }
 

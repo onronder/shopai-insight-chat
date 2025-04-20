@@ -1,5 +1,3 @@
-// supabase/functions/shopify_webhook_products_delete/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
@@ -35,20 +33,38 @@ serve(async (req) => {
       return returnJsonError(400, "Missing product ID");
     }
 
-    const { error: updateError } = await supabase
+    // 🧼 Soft delete main product record
+    const { error: updateProductErr } = await supabase
       .from("shopify_products")
       .update({ is_deleted: true })
       .eq("shopify_product_id", shopify_product_id)
       .eq("store_id", store.id);
 
-    if (updateError) {
-      logError("shopify_webhook_products_delete", updateError, {
+    if (updateProductErr) {
+      logError("shopify_webhook_products_delete", updateProductErr, {
         shopify_product_id,
         store_id: store.id
       });
       return returnJsonError(500, "Failed to soft-delete product");
     }
 
+    // 🧼 Soft delete variants (if any)
+    const { data: product, error: lookupError } = await supabase
+      .from("shopify_products")
+      .select("id")
+      .eq("shopify_product_id", shopify_product_id)
+      .eq("store_id", store.id)
+      .maybeSingle();
+
+    if (product) {
+      await supabase
+        .from("shopify_product_variants")
+        .update({ is_deleted: true })
+        .eq("product_id", product.id)
+        .eq("store_id", store.id);
+    }
+
+    // 🪵 Log the webhook
     await supabase.from("webhook_logs").insert({
       store_id: store.id,
       topic: "products/delete",
@@ -56,7 +72,7 @@ serve(async (req) => {
       payload
     });
 
-    logInfo("shopify_webhook_products_delete", "Product deleted via webhook", {
+    logInfo("shopify_webhook_products_delete", "Product + variants soft deleted", {
       shopify_product_id,
       store_id: store.id
     });

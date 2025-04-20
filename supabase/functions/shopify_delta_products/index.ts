@@ -1,3 +1,5 @@
+// supabase/functions/shopify_delta_products/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logInfo, logError } from "../_shared/logging.ts";
@@ -41,10 +43,11 @@ serve(async (req) => {
 
       let pageUrl = baseUrl;
       let productCount = 0;
+      const now = new Date().toISOString();
 
       await supabase
         .from("shopify_stores")
-        .update({ sync_started_at: new Date().toISOString() })
+        .update({ sync_started_at: now })
         .eq("id", store.id);
 
       while (pageUrl) {
@@ -55,18 +58,30 @@ serve(async (req) => {
           break;
         }
 
-        const json = await res.json();
-        const products = json.products;
+        const { products } = await res.json();
 
         for (const p of products) {
-          const { id: shopify_product_id, title, variants } = p;
+          const {
+            id: shopify_product_id,
+            title,
+            product_type,
+            vendor,
+            tags,
+            updated_at,
+            variants
+          } = p;
 
           const { data: prod, error: insertError } = await supabase
             .from("shopify_products")
             .upsert({
               shopify_product_id: shopify_product_id.toString(),
               title,
-              store_id: store.id,
+              product_type: product_type || null,
+              vendor: vendor || null,
+              tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+              updated_at: updated_at ? new Date(updated_at) : null,
+              shopify_synced_at: now,
+              store_id: store.id
             })
             .select("id")
             .single();
@@ -90,8 +105,10 @@ serve(async (req) => {
                 sku: v.sku,
                 price: v.price ? parseFloat(v.price) : null,
                 inventory_quantity: v.inventory_quantity ?? null,
+                position: v.position ?? null,
                 product_id,
                 store_id: store.id,
+                shopify_synced_at: now
               })
               .then((res) => res.error);
 

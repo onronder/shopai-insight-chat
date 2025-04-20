@@ -48,25 +48,29 @@ serve(async (req) => {
 
     const { data, error } = await supabase
       .from("vw_variant_sales_summary")
-      .select("*")
+      .select("variant_id, sku, price, units_sold, total_revenue")
       .eq("store_id", store_id)
       .order("total_revenue", { ascending: false });
 
     if (error) {
       logError("metrics_variant_sales", error, { store_id });
-      return addSecurityHeaders(returnJsonError(500, "Failed to fetch variant sales summary"));
+      return addSecurityHeaders(returnJsonError(500, "Failed to fetch variant sales data"));
     }
 
-    // ✅ Transform data to expected frontend format
     const transformed = (data ?? []).map(item => ({
-      variant_title: item.sku ?? 'Unnamed Variant',
-      total_sales: Number(item.total_revenue ?? 0)
+      title: item.sku || "Unnamed Variant",
+      variant_id: item.variant_id || "",
+      price: Number(item.price) || 0,
+      count: Number(item.units_sold) || 0,
+      revenue: Number(item.total_revenue) || 0,
+      status: "stable",        // Placeholder for future trend logic
+      change: 0                // Placeholder
     }));
 
     logInfo("metrics_variant_sales", "Request completed", {
       store_id,
-      count: transformed.length,
-      duration_ms: performance.now() - startTime
+      duration_ms: performance.now() - startTime,
+      records: transformed.length
     });
 
     return addSecurityHeaders(new Response(JSON.stringify(transformed), {

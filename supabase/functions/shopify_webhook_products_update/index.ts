@@ -1,4 +1,4 @@
-// supabase/functions/shopify_webhook_products_update/index.ts
+// File: supabase/functions/shopify_webhook_products_update/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -35,9 +35,21 @@ serve(async (req) => {
       return returnJsonError(400, "Missing product ID");
     }
 
+    const updateFields = {
+      title: payload.title,
+      product_type: payload.product_type || null,
+      vendor: payload.vendor || null,
+      tags: Array.isArray(payload.tags)
+        ? payload.tags.join(", ")
+        : typeof payload.tags === "string"
+        ? payload.tags
+        : null,
+      shopify_synced_at: new Date().toISOString()
+    };
+
     const { data: product, error: updateError } = await supabase
       .from("shopify_products")
-      .update({ title: payload.title })
+      .update(updateFields)
       .eq("shopify_product_id", shopify_product_id)
       .eq("store_id", store.id)
       .select("id")
@@ -60,6 +72,7 @@ serve(async (req) => {
         inventory_quantity: v.inventory_quantity ?? null,
         product_id: product.id,
         store_id: store.id,
+        is_deleted: false
       });
     }
 
@@ -70,7 +83,7 @@ serve(async (req) => {
       payload,
     });
 
-    logInfo("shopify_webhook_products_update", "Product updated successfully", {
+    logInfo("shopify_webhook_products_update", "Product + variants updated", {
       shopify_product_id,
       store_id: store.id,
     });

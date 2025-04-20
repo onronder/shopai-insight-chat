@@ -25,14 +25,12 @@ import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 import { formatCurrency } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
+import { GeoHeatmapChart } from "@/components/analytics/GeoHeatmapChart"
 
 const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
 
-// Custom tooltip formatter for currency values
-const currencyFormatter = (value: number) => formatCurrency(value);
-
-// Custom tooltip formatter for orders
-const orderFormatter = (value: number) => `${value.toLocaleString()} orders`;
+const currencyFormatter = (value: number) => formatCurrency(value)
+const orderFormatter = (value: number) => `${value.toLocaleString()} orders`
 
 const Analytics: React.FC = () => {
   const {
@@ -41,26 +39,21 @@ const Analytics: React.FC = () => {
     salesData,
     funnelData,
     customerTypeData,
-    topCountriesData,
+    geoHeatmapData,
     refetch,
     hasData
   } = useAnalyticsData()
-  
-  // Track which charts are loading independently
-  const [salesLoading, setSalesLoading] = useState(false);
-  const [funnelLoading, setFunnelLoading] = useState(false);
-  const [customerTypesLoading, setCustomerTypesLoading] = useState(false);
-  const [countriesLoading, setCountriesLoading] = useState(false);
-  
-  // Handle individual chart refetches
+
+  const [salesLoading, setSalesLoading] = useState(false)
+
   const handleRefreshSales = async () => {
-    setSalesLoading(true);
+    setSalesLoading(true)
     try {
-      await refetch();
+      await refetch()
     } finally {
-      setSalesLoading(false);
+      setSalesLoading(false)
     }
-  };
+  }
 
   if (isLoading) {
     return (
@@ -105,7 +98,7 @@ const Analytics: React.FC = () => {
           <TabsTrigger value="sales">Sales Overview</TabsTrigger>
           <TabsTrigger value="funnel">Funnel</TabsTrigger>
           <TabsTrigger value="customers">Customer Types</TabsTrigger>
-          <TabsTrigger value="geo">Top Countries</TabsTrigger>
+          <TabsTrigger value="geo">Geo Heatmap</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales">
@@ -142,8 +135,8 @@ const Analytics: React.FC = () => {
                     <YAxis tickFormatter={currencyFormatter} />
                     <Tooltip 
                       formatter={(value: number, name: string) => {
-                        if (name === 'orders') return [orderFormatter(value), 'Orders'];
-                        return [currencyFormatter(value), name === 'revenue' ? 'Total Revenue' : name === 'net' ? 'Net Revenue' : 'Refunds'];
+                        if (name === 'orders') return [orderFormatter(value), 'Orders']
+                        return [currencyFormatter(value), name === 'revenue' ? 'Total Revenue' : name === 'net' ? 'Net Revenue' : 'Refunds']
                       }}
                     />
                     <Legend />
@@ -205,7 +198,7 @@ const Analytics: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label={({type, percent}) => `${type}: ${(percent * 100).toFixed(0)}%`}
+                      label={({ type, percent }) => `${type}: ${(percent * 100).toFixed(0)}%`}
                     >
                       {customerTypeData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -223,28 +216,16 @@ const Analytics: React.FC = () => {
         <TabsContent value="geo">
           <Card>
             <CardHeader>
-              <CardTitle>Top Countries</CardTitle>
-              <CardDescription>Order distribution by country</CardDescription>
+              <CardTitle>Geo Heatmap</CardTitle>
+              <CardDescription>Order distribution by location</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              {topCountriesData.length === 0 ? (
+              {geoHeatmapData.length === 0 ? (
                 <div className="h-[300px] flex items-center justify-center text-center">
-                  <p className="text-muted-foreground">No geographic data available</p>
+                  <p className="text-muted-foreground">No location data available</p>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart 
-                    data={topCountriesData}
-                    layout="vertical"
-                    margin={{ top: 5, right: 30, left: 90, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="country" width={80} />
-                    <Tooltip formatter={(value) => [`${value.toLocaleString()} orders`, 'Orders']} />
-                    <Bar dataKey="value" fill="#8b5cf6" label={{ position: 'right' }} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <GeoHeatmapChart data={geoHeatmapData} />
               )}
             </CardContent>
           </Card>

@@ -1,3 +1,5 @@
+// File: supabase/functions/shopify_sync_orders/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logInfo, logError } from "../_shared/logging.ts";
@@ -29,123 +31,149 @@ serve(async () => {
     }
 
     for (const store of stores) {
-      const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=250`;
-      const headers = {
-        "X-Shopify-Access-Token": store.access_token,
-        "Content-Type": "application/json",
-      };
+      const now = new Date().toISOString();
 
-      let pageUrl: string | null = baseUrl;
-      let synced = 0;
+      await supabase.from("stores").update({
+        sync_status: "syncing",
+        sync_started_at: now,
+      }).eq("id", store.id);
 
-      while (pageUrl) {
-        const res = await fetch(pageUrl, { headers });
-        if (!res.ok) {
-          const errorText = await res.text();
-          logError(context, "Shopify fetch failed", {
-            store: store.domain,
-            status: res.status,
-            error: errorText,
-          });
-          break;
-        }
+      try {
+        const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=250`;
+        const headers = {
+          "X-Shopify-Access-Token": store.access_token,
+          "Content-Type": "application/json",
+        };
 
-        const { orders } = await res.json();
+        let pageUrl: string | null = baseUrl;
+        let synced = 0;
 
-        for (const order of orders) {
-          const {
-            id: shopify_order_id,
-            created_at,
-            processed_at,
-            total_price,
-            subtotal_price,
-            total_discounts,
-            currency,
-            financial_status,
-            fulfillment_status,
-            customer,
-            line_items,
-          } = order;
+        while (pageUrl) {
+          const res = await fetch(pageUrl, { headers });
+          if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Shopify fetch failed: ${errorText}`);
+          }
 
-          let customer_id = null;
+          const { orders } = await res.json();
 
-          if (customer && customer.id) {
-            const { data: customerRecord, error: customerError } = await supabase
-              .from("shopify_customers")
+          for (const order of orders) {
+            const {
+              id: shopify_order_id,
+              name: order_number,
+              created_at,
+              processed_at,
+              updated_at,
+              total_price,
+              subtotal_price,
+              total_discounts,
+              currency,
+              financial_status,
+              fulfillment_status,
+              billing_address,
+              shipping_address,
+              customer,
+              line_items,
+            } = order;
+
+            let customer_id = null;
+            if (customer && customer.id) {
+              const { data: customerRecord, error: customerError } = await supabase
+                .from("shopify_customers")
+                .upsert({
+                  shopify_customer_id: customer.id.toString(),
+                  email: customer.email,
+                  first_name: customer.first_name,
+                  last_name: customer.last_name,
+                  phone: customer.phone,
+                  tags: customer.tags || null,
+                  total_spent: parseFloat(customer.total_spent ?? 0),
+                  orders_count: customer.orders_count || 0,
+                  last_order_at: customer.last_order_created_at || null,
+                  store_id: store.id,
+                })
+                .select("id")
+                .single();
+
+              if (!customerError) customer_id = customerRecord.id;
+            }
+
+            const { data: orderRecord, error: orderError } = await supabase
+              .from("shopify_orders")
               .upsert({
-                shopify_customer_id: customer.id.toString(),
-                email: customer.email,
-                first_name: customer.first_name,
-                last_name: customer.last_name,
+                shopify_order_id: shopify_order_id.toString(),
                 store_id: store.id,
+                order_number,
+                customer_id,
+                total_price: parseFloat(total_price),
+                subtotal_price: parseFloat(subtotal_price),
+                total_discount: parseFloat(total_discounts),
+                currency,
+                financial_status,
+                fulfillment_status,
+                billing_city: billing_address?.city || null,
+                billing_state: billing_address?.province || null,
+                billing_country: billing_address?.country || null,
+                shipping_city: shipping_address?.city || null,
+                shipping_state: shipping_address?.province || null,
+                shipping_country: shipping_address?.country || null,
+                created_at: created_at ? new Date(created_at) : null,
+                processed_at: processed_at ? new Date(processed_at) : null,
+                shopify_updated_at: updated_at ? new Date(updated_at) : null,
+                shopify_synced_at: new Date(),
               })
               .select("id")
               .single();
 
-            if (customerError) {
-              logError(context, "Customer upsert failed", {
-                store: store.domain,
-                customer_id: customer.id,
-                error: customerError.message,
-              });
-            } else {
-              customer_id = customerRecord.id;
+            if (!orderError && orderRecord) {
+              const order_id = orderRecord.id;
+
+              for (const item of line_items) {
+                await supabase.from("shopify_order_line_items").upsert({
+                  store_id: store.id,
+                  order_id,
+                  product_id: item.product_id?.toString() || null,
+                  variant_id: item.variant_id?.toString() || null,
+                  title: item.title,
+                  sku: item.sku || null,
+                  quantity: item.quantity,
+                  price: parseFloat(item.price),
+                  discount: item.total_discount ?? 0,
+                });
+              }
+
+              synced++;
             }
           }
 
-          const { data: orderRecord, error: orderError } = await supabase
-            .from("shopify_orders")
-            .upsert({
-              shopify_order_id: shopify_order_id.toString(),
-              store_id: store.id,
-              customer_id,
-              total_price: parseFloat(total_price),
-              subtotal_price: parseFloat(subtotal_price),
-              total_discount: parseFloat(total_discounts),
-              currency,
-              financial_status,
-              fulfillment_status,
-              created_at: created_at ? new Date(created_at) : null,
-              processed_at: processed_at ? new Date(processed_at) : null,
-            })
-            .select("id")
-            .single();
-
-          if (orderError || !orderRecord) {
-            logError(context, "Order upsert failed", {
-              order_id: shopify_order_id,
-              error: orderError?.message,
-            });
-            continue;
-          }
-
-          const order_id = orderRecord.id;
-
-          for (const item of line_items) {
-            await supabase.from("shopify_order_line_items").upsert({
-              store_id: store.id,
-              order_id,
-              product_id: null,
-              variant_id: null,
-              title: item.title,
-              quantity: item.quantity,
-              price: parseFloat(item.price),
-              discount: item.total_discount ?? 0,
-            });
-          }
-
-          synced++;
+          const link = res.headers.get("link");
+          const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
+          pageUrl = nextUrl || null;
         }
 
-        const link = res.headers.get("link");
-        const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-        pageUrl = nextUrl || null;
-      }
+        await supabase.from("stores").update({
+          sync_status: "completed",
+          sync_finished_at: new Date().toISOString(),
+        }).eq("id", store.id);
 
-      logInfo(context, "Store sync completed", {
-        store: store.domain,
-        orders_synced: synced,
-      });
+        logInfo(context, "Store sync completed", {
+          store: store.domain,
+          orders_synced: synced,
+        });
+      } catch (syncError) {
+        logError(context, "Sync failed for store", { error: syncError, store: store.domain });
+
+        await supabase.from("stores").update({
+          sync_status: "failed",
+          sync_finished_at: new Date().toISOString(),
+        }).eq("id", store.id);
+
+        await supabase.from("sync_errors").insert({
+          store_id: store.id,
+          source: "orders",
+          error: syncError.message || "Unknown error",
+        });
+      }
     }
 
     logInfo(context, "Full sync completed", {

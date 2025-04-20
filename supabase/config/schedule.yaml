@@ -1,0 +1,9 @@
+version: 1
+schedules:
+  - name: delta_sync_scheduler
+    cron: "*/5 * * * *"
+    function: cron_delta_sync
+    enabled: true
+    endpoint: /cron_delta_sync
+    headers:
+      Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhdXRvbWF0aW9uX2JvdCIsInJvbGUiOiJhdXRvbWF0aW9uIiwiaWF0IjoxNzQ1MTg4MjM5LCJleHAiOjE3NDc3ODAyMzl9.2q9XyhwNgQLLaQ1-sPjQpK_Dz7dO6PYwvF2OBDh6K9s
