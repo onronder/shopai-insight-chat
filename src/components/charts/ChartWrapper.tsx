@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingState } from "@/components/common/LoadingState";
@@ -45,7 +44,7 @@ export const ChartWrapper: React.FC<ChartWrapperProps> = ({
       <CardContent className="p-6 pt-0">
         {isLoading ? (
           <div className="w-full space-y-2">
-            <Skeleton className={`w-full h-[${skeletonHeight}px] rounded-xl`} />
+            <Skeleton style={{ height: skeletonHeight }} className="w-full rounded-xl" />
           </div>
         ) : isEmpty ? (
           <EmptyState 

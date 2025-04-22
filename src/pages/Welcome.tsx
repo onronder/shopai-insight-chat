@@ -1,5 +1,3 @@
-// File: src/pages/Welcome.tsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -44,11 +42,10 @@ const Welcome: React.FC = () => {
     syncStatus === "completed" ||
     (syncStartedAt && syncFinishedAt && new Date(syncFinishedAt) > new Date(syncStartedAt));
 
-  // Determine step-based progress based on real timestamps
   const syncProgress = (() => {
     if (!syncStartedAt) return 0;
-    if (!syncFinishedAt) return 50; // syncing
-    return 100; // complete
+    if (!syncFinishedAt) return 50;
+    return 100;
   })();
 
   const computedStatus: SyncStatusType = {
@@ -82,12 +79,24 @@ const Welcome: React.FC = () => {
 
       const { data, error } = await supabase
         .from("stores")
-        .select("shop_domain")
+        .select("shop_domain, disconnected_at")
         .eq("id", storeId)
         .maybeSingle();
 
       if (error || !data) {
         setLoadingStoreInfo(false);
+        return;
+      }
+
+      // ✅ Guard: redirect if disconnected
+      if (data.disconnected_at) {
+        toast({
+          title: "Store Disconnected",
+          description: "This store has been disconnected. Please reconnect.",
+          variant: "destructive",
+        });
+
+        navigate("/shopify-login");
         return;
       }
 

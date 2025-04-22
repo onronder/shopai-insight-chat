@@ -12,29 +12,17 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle } from "lucide-react"
 
 const CustomersPage: React.FC = () => {
-  const { segments, ltv, churn, loyalty, isLoading, error } = useCustomersData()
+  const {
+    isLoading,
+    error,
+    segmentsData,
+    ltvDistributionData,
+    churnCandidatesData,
+    repeatCustomersData,
+  } = useCustomersData()
 
-  // Check for specific data loading states
-  const segmentsLoading = segments.isLoading
-  const ltvLoading = ltv.isLoading
-  const churnLoading = churn.isLoading
-  const loyaltyLoading = loyalty.isLoading
+  const handleRetry = () => location.reload()
 
-  // Handle fetch errors
-  const segmentsError = segments.error
-  const ltvError = ltv.error
-  const churnError = churn.error
-  const loyaltyError = loyalty.error
-
-  // Function to retry failed data fetches
-  const handleRetry = () => {
-    if (segmentsError) segments.refetch()
-    if (ltvError) ltv.refetch()
-    if (churnError) churn.refetch()
-    if (loyaltyError) loyalty.refetch()
-  }
-
-  // If all data is loading, show a loading state
   if (isLoading) {
     return (
       <AppLayout>
@@ -44,26 +32,24 @@ const CustomersPage: React.FC = () => {
     )
   }
 
-  // If any data fetch had an error, show a comprehensive error state
   if (error) {
     return (
       <AppLayout>
         <SyncStatusBanner />
-        <ErrorState 
-          title="Failed to load customer insights" 
-          description={error.message} 
+        <ErrorState
+          title="Failed to load customer insights"
+          description={error.message}
           action={<Button onClick={handleRetry}>Retry</Button>}
         />
       </AppLayout>
     )
   }
 
-  // Check if we have no data at all
-  const hasNoData = 
-    (!segments.data || segments.data.length === 0) && 
-    (!ltv.data || ltv.data.length === 0) && 
-    (!churn.data || churn.data.length === 0) && 
-    (!loyalty.data)
+  const hasNoData =
+    (!segmentsData || segmentsData.length === 0) &&
+    (!ltvDistributionData || ltvDistributionData.length === 0) &&
+    (!churnCandidatesData || churnCandidatesData.length === 0) &&
+    (!repeatCustomersData || repeatCustomersData.length === 0)
 
   if (hasNoData) {
     return (
@@ -86,67 +72,14 @@ const CustomersPage: React.FC = () => {
     <AppLayout>
       <SyncStatusBanner />
       <div className="grid gap-4">
-        {/* Segments Table with loading and error states */}
-        {segmentsLoading ? (
-          <div className="rounded-lg border p-4"><LoadingState message="Loading segments..." /></div>
-        ) : segmentsError ? (
-          <div className="rounded-lg border p-4">
-            <ErrorState 
-              title="Failed to load customer segments" 
-              description={segmentsError.message} 
-              action={<Button size="sm" onClick={() => segments.refetch()}>Retry</Button>}
-            />
-          </div>
-        ) : (
-          <CustomerSegmentsTable data={segments.data || []} />
-        )}
+        <CustomerSegmentsTable />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* LTV Distribution Chart with loading and error states */}
-          {ltvLoading ? (
-            <div className="rounded-lg border p-4"><LoadingState message="Loading LTV data..." /></div>
-          ) : ltvError ? (
-            <div className="rounded-lg border p-4">
-              <ErrorState 
-                title="Failed to load LTV data" 
-                description={ltvError.message} 
-                action={<Button size="sm" onClick={() => ltv.refetch()}>Retry</Button>}
-              />
-            </div>
-          ) : (
-            <LtvDistributionChart data={ltv.data || []} />
-          )}
-
-          {/* Churn Forecast Chart with loading and error states */}
-          {churnLoading ? (
-            <div className="rounded-lg border p-4"><LoadingState message="Loading churn data..." /></div>
-          ) : churnError ? (
-            <div className="rounded-lg border p-4">
-              <ErrorState 
-                title="Failed to load churn data" 
-                description={churnError.message} 
-                action={<Button size="sm" onClick={() => churn.refetch()}>Retry</Button>}
-              />
-            </div>
-          ) : (
-            <ChurnForecastChart data={churn.data || []} />
-          )}
+          <LtvDistributionChart data={ltvDistributionData} />
+          <ChurnForecastChart data={churnCandidatesData} />
         </div>
 
-        {/* Best Customers with loading and error states */}
-        {loyaltyLoading ? (
-          <div className="rounded-lg border p-4"><LoadingState message="Loading loyalty data..." /></div>
-        ) : loyaltyError ? (
-          <div className="rounded-lg border p-4">
-            <ErrorState 
-              title="Failed to load loyalty data" 
-              description={loyaltyError.message} 
-              action={<Button size="sm" onClick={() => loyalty.refetch()}>Retry</Button>}
-            />
-          </div>
-        ) : (
-          <BestCustomers data={loyalty.data || { repeat_customers: 0, new_customers: 0 }} />
-        )}
+        <BestCustomers data={repeatCustomersData} />
       </div>
     </AppLayout>
   )

@@ -6,9 +6,9 @@ export interface StoreSyncStatus {
   sync_started_at: string | null;
   sync_finished_at: string | null;
   updated_at: string | null;
+  shop_domain?: string | null;
 }
 
-// Get store ID from Supabase session or localStorage fallback
 const getCurrentStoreId = async (): Promise<string | null> => {
   try {
     const { data } = await supabase.auth.getSession();
@@ -38,13 +38,14 @@ export function useStoreSyncStatus() {
           sync_status: 'idle',
           sync_started_at: null,
           sync_finished_at: null,
-          updated_at: null
+          updated_at: null,
+          shop_domain: null,
         };
       }
 
       const { data, error } = await supabase
         .from('stores')
-        .select('sync_status, sync_started_at, sync_finished_at, updated_at')
+        .select('sync_status, sync_started_at, sync_finished_at, updated_at, shop_domain')
         .eq('id', storeId)
         .order('updated_at', { ascending: false })
         .limit(1)
@@ -52,11 +53,20 @@ export function useStoreSyncStatus() {
 
       if (error) throw error;
 
-      return data || {
-        sync_status: 'idle',
-        sync_started_at: null,
-        sync_finished_at: null,
-        updated_at: null
+      const validStatus = ['idle', 'syncing', 'completed', 'failed'] as const;
+      type ValidStatus = typeof validStatus[number];
+
+      const status: ValidStatus =
+        validStatus.includes(data?.sync_status as ValidStatus)
+          ? (data?.sync_status as ValidStatus)
+          : 'idle';
+
+      return {
+        sync_status: status,
+        sync_started_at: data?.sync_started_at ?? null,
+        sync_finished_at: data?.sync_finished_at ?? null,
+        updated_at: data?.updated_at ?? null,
+        shop_domain: data?.shop_domain ?? null,
       };
     },
     enabled: !!storeId,
@@ -79,6 +89,7 @@ export function useStoreSyncStatus() {
     syncStartedAt: syncData?.sync_started_at,
     syncFinishedAt: syncData?.sync_finished_at,
     updatedAt: syncData?.updated_at,
+    storeDomain: syncData?.shop_domain ?? null,
     isLoading: storeIdQuery.isLoading || syncStatusQuery.isLoading,
     isError: syncStatusQuery.isError || storeIdQuery.isError,
     error: syncStatusQuery.error || storeIdQuery.error,

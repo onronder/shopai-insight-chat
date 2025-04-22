@@ -1,6 +1,21 @@
+// File: src/components/customers/ChurnForecastChart.tsx
+
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableHeader, TableBody, TableRow, TableCell, TableHead } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHead,
+} from "@/components/ui/table";
 import { ChurnCandidate } from "@/hooks/useCustomersData";
 import { AlertTriangle, Clock } from "lucide-react";
 
@@ -8,24 +23,29 @@ export interface ChurnForecastChartProps {
   data: ChurnCandidate[];
 }
 
-export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({ data }) => {
-  // Sort by days since last order (most inactive first)
-  const sortedData = [...data].sort((a, b) => b.days_since_last_order - a.days_since_last_order);
-  
-  // Calculate churn risk level 
+export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({
+  data,
+}) => {
+  const sortedData = [...data].sort(
+    (a, b) => b.days_since_last_order - a.days_since_last_order
+  );
+
   const getRiskLevel = (days: number, riskScore: number) => {
     if (riskScore >= 80) return "High";
     if (riskScore >= 60) return "Medium";
     return "Low";
   };
-  
-  // Get the icon color based on risk level
+
   const getRiskColor = (days: number, riskScore: number) => {
     if (riskScore >= 80) return "text-red-500";
     if (riskScore >= 60) return "text-amber-500";
     return "text-green-500";
   };
-  
+
+  // ✅ Guard clause: Skip render entirely if there's no customer with risk
+  const hasChurnCandidates = data.some((d) => d.risk_score > 0);
+  if (!hasChurnCandidates) return null;
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
@@ -57,8 +77,16 @@ export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({ data }) 
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className={`font-medium ${getRiskColor(customer.days_since_last_order, customer.risk_score)}`}>
-                        {getRiskLevel(customer.days_since_last_order, customer.risk_score)}
+                      <div
+                        className={`font-medium ${getRiskColor(
+                          customer.days_since_last_order,
+                          customer.risk_score
+                        )}`}
+                      >
+                        {getRiskLevel(
+                          customer.days_since_last_order,
+                          customer.risk_score
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -73,7 +101,11 @@ export const ChurnForecastChart: React.FC<ChurnForecastChartProps> = ({ data }) 
           </div>
         )}
         <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm">
-          <p><span className="font-medium">AI Insight:</span> Consider sending personalized emails to high-risk customers with special offers to encourage them to return.</p>
+          <p>
+            <span className="font-medium">AI Insight:</span> Consider sending
+            personalized emails to high-risk customers with special offers to
+            encourage them to return.
+          </p>
         </div>
       </CardContent>
     </Card>
