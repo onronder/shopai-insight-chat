@@ -1,34 +1,57 @@
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle } from "lucide-react";
-import { InventoryRisk } from "@/hooks/useProductsData";
+import React from "react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { AlertTriangle } from "lucide-react"
+import { InventoryRisk } from "@/hooks/useProductsData"
 
 interface InventoryRiskTableProps {
-  data: InventoryRisk[];
+  data: InventoryRisk[]
 }
 
-export const InventoryRiskTable: React.FC<InventoryRiskTableProps> = ({ data }) => {
-  // Helper function to get the badge variant based on risk type
-  const getRiskBadgeVariant = (risk_type: string) => {
-    switch(risk_type) {
-      case 'understock': return 'destructive';
-      case 'optimal': return 'secondary';
-      case 'overstock': return 'warning';
-      default: return 'outline';
-    }
-  };
+type RiskType = "understock" | "optimal" | "overstock"
 
-  // Helper function to get the risk display text
-  const getRiskDisplayText = (risk_type: string) => {
-    switch(risk_type) {
-      case 'understock': return 'Low Stock';
-      case 'optimal': return 'Optimal';
-      case 'overstock': return 'Overstock';
-      default: return 'Unknown';
+export const InventoryRiskTable: React.FC<InventoryRiskTableProps> = ({ data }) => {
+  const getRiskBadgeVariant = (
+    risk_type: RiskType | string
+  ): "default" | "secondary" | "destructive" | "outline" | "success" => {
+    switch (risk_type) {
+      case "understock":
+        return "destructive"
+      case "optimal":
+        return "secondary"
+      case "overstock":
+        return "success" // ✅ mapped to valid variant
+      default:
+        return "outline"
     }
-  };
+  }
+
+  const getRiskDisplayText = (risk_type: RiskType | string): string => {
+    switch (risk_type) {
+      case "understock":
+        return "Low Stock"
+      case "optimal":
+        return "Optimal"
+      case "overstock":
+        return "Overstock"
+      default:
+        return "Unknown"
+    }
+  }
 
   return (
     <Card>
@@ -56,14 +79,20 @@ export const InventoryRiskTable: React.FC<InventoryRiskTableProps> = ({ data }) 
                 {data.map((item) => (
                   <TableRow key={item.variant_id}>
                     <TableCell className="font-medium">{item.title}</TableCell>
-                    <TableCell>{item.sku || 'N/A'}</TableCell>
-                    <TableCell className={item.risk_type === 'understock' ? "text-red-500 font-medium" : ""}>
+                    <TableCell>{item.sku || "N/A"}</TableCell>
+                    <TableCell
+                      className={
+                        item.risk_type === "understock"
+                          ? "text-red-500 font-medium"
+                          : ""
+                      }
+                    >
                       {item.inventory} units
                     </TableCell>
                     <TableCell>{Math.abs(item.value).toFixed(2)}</TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={getRiskBadgeVariant(item.risk_type) as any}
+                      <Badge
+                        variant={getRiskBadgeVariant(item.risk_type)}
                         className="whitespace-nowrap"
                       >
                         {getRiskDisplayText(item.risk_type)}
@@ -81,5 +110,5 @@ export const InventoryRiskTable: React.FC<InventoryRiskTableProps> = ({ data }) 
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}

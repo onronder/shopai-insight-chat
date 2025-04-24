@@ -2,14 +2,17 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Rate limit config
+// Constants for rate limiting
 const RATE_LIMIT_REQUESTS = 60;
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 /**
  * Enforces per-store + per-IP rate limiting.
  */
-export async function checkRateLimit(clientIp: string, storeId: string) {
+export async function checkRateLimit(
+  clientIp: string,
+  storeId: string
+): Promise<{ allowed: boolean; headers: Record<string, string> }> {
   const supabase = createClient(
     Deno.env.get("PROJECT_SUPABASE_URL")!,
     Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
@@ -27,8 +30,7 @@ export async function checkRateLimit(clientIp: string, storeId: string) {
 
   if (error) {
     console.error("[Rate Limit Error]", error.message);
-    // Fail open: allow request to proceed if logging fails
-    return { allowed: true, headers: {} };
+    return { allowed: true, headers: {} }; // fail-open fallback
   }
 
   const requestCount = count ?? 0;
@@ -43,10 +45,7 @@ export async function checkRateLimit(clientIp: string, storeId: string) {
     };
   }
 
-  await supabase.from("api_requests").insert({
-    store_id: storeId,
-    client_ip: clientIp,
-  });
+  await supabase.from("api_requests").insert({ store_id: storeId, client_ip: clientIp });
 
   return {
     allowed: true,
@@ -57,13 +56,13 @@ export async function checkRateLimit(clientIp: string, storeId: string) {
 }
 
 /**
- * Applies default security headers (CSP, clickjacking, etc.)
+ * Applies default security headers to a response.
  */
 export function addSecurityHeaders(
   res: Response,
   additionalHeaders: Record<string, string> = {}
 ): Response {
-  const baseHeaders = {
+  const baseHeaders: Record<string, string> = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "X-XSS-Protection": "1; mode=block",
@@ -86,7 +85,7 @@ export function addSecurityHeaders(
 }
 
 /**
- * Returns a standardized error response with JSON and headers
+ * Returns a JSON error response with proper content type and status code.
  */
 export function returnJsonError(status: number, message: string): Response {
   return new Response(JSON.stringify({ error: message }), {

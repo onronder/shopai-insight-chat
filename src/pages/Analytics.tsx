@@ -1,9 +1,12 @@
-import React, { useState } from "react"
-import { AppLayout } from "@/components/layout/AppLayout"
-import { useAnalyticsData } from "@/hooks/useAnalyticsData"
-import { ErrorState } from "@/components/ui/ErrorState"
-import { LoadingState } from "@/components/common/LoadingState"
-import { EmptyState } from "@/components/ui/EmptyState"
+// File: src/pages/Analytics.tsx
+
+import React, { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { LoadingState } from "@/components/common/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   ResponsiveContainer,
   LineChart,
@@ -18,21 +21,23 @@ import {
   Pie,
   Cell,
   Legend
-} from "recharts"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
-import { formatCurrency } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
-import { GeoHeatmapChart } from "@/components/analytics/GeoHeatmapChart"
+} from "recharts";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner";
+import { formatCurrency } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { GeoHeatmapChart, GeoHeatmapPoint } from "@/components/analytics/GeoHeatmapChart";
 
-const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
+const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
-const currencyFormatter = (value: number) => formatCurrency(value)
-const orderFormatter = (value: number) => `${value.toLocaleString()} orders`
+const currencyFormatter = (value: number) => formatCurrency(value);
+const orderFormatter = (value: number) => `${value.toLocaleString()} orders`;
 
 const Analytics: React.FC = () => {
+  useStoreAccessGuard();
+
   const {
     isLoading,
     error,
@@ -42,18 +47,18 @@ const Analytics: React.FC = () => {
     geoHeatmapData,
     refetch,
     hasData
-  } = useAnalyticsData()
+  } = useAnalyticsData();
 
-  const [salesLoading, setSalesLoading] = useState(false)
+  const [salesLoading, setSalesLoading] = useState(false);
 
   const handleRefreshSales = async () => {
-    setSalesLoading(true)
+    setSalesLoading(true);
     try {
-      await refetch()
+      await refetch();
     } finally {
-      setSalesLoading(false)
+      setSalesLoading(false);
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -61,7 +66,7 @@ const Analytics: React.FC = () => {
         <SyncStatusBanner />
         <LoadingState message="Loading analytics..." />
       </AppLayout>
-    )
+    );
   }
 
   if (error) {
@@ -74,7 +79,7 @@ const Analytics: React.FC = () => {
           action={<Button onClick={() => refetch()}>Retry</Button>}
         />
       </AppLayout>
-    )
+    );
   }
 
   if (!hasData) {
@@ -87,7 +92,7 @@ const Analytics: React.FC = () => {
           action={<Button onClick={() => refetch()}>Refresh Data</Button>}
         />
       </AppLayout>
-    )
+    );
   }
 
   return (
@@ -135,8 +140,8 @@ const Analytics: React.FC = () => {
                     <YAxis tickFormatter={currencyFormatter} />
                     <Tooltip 
                       formatter={(value: number, name: string) => {
-                        if (name === 'orders') return [orderFormatter(value), 'Orders']
-                        return [currencyFormatter(value), name === 'revenue' ? 'Total Revenue' : name === 'net' ? 'Net Revenue' : 'Refunds']
+                        if (name === 'orders') return [orderFormatter(value), 'Orders'];
+                        return [currencyFormatter(value), name === 'revenue' ? 'Total Revenue' : name === 'net' ? 'Net Revenue' : 'Refunds'];
                       }}
                     />
                     <Legend />
@@ -220,19 +225,13 @@ const Analytics: React.FC = () => {
               <CardDescription>Order distribution by location</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              {geoHeatmapData.length === 0 ? (
-                <div className="h-[300px] flex items-center justify-center text-center">
-                  <p className="text-muted-foreground">No location data available</p>
-                </div>
-              ) : (
-                <GeoHeatmapChart data={geoHeatmapData} />
-              )}
+              <GeoHeatmapChart data={geoHeatmapData as GeoHeatmapPoint[]} />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </AppLayout>
-  )
-}
+  );
+};
 
-export default Analytics
+export default Analytics;

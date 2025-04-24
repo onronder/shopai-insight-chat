@@ -1,8 +1,8 @@
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { secureFetch } from "@/lib/secure-fetch";
 import { ConversationType, MessageType } from "@/components/assistant/ConversationList";
 
-// TODO: Replace with API call to fetch conversation history from backend
+// Still mock data until backend API is integrated
 const sampleConversations: ConversationType[] = [
   {
     id: "1",
@@ -19,7 +19,7 @@ const sampleConversations: ConversationType[] = [
       {
         id: "1-2",
         sender: "assistant",
-        text: "Here's the sales trend for the past 6 months. I notice a steady increase with a significant jump in April, followed by a slight decline in May, then reaching the highest point in June. The overall trend shows a 137.5% growth from January to June.",
+        text: "Here's the sales trend. Growth has been 137% from January to June.",
         timestamp: new Date(2023, 3, 15, 10, 31),
         containsChart: true,
         chartType: "line",
@@ -36,34 +36,34 @@ export const useConversations = () => {
   const [hasError, setHasError] = useState(false);
   const [retryCounter, setRetryCounter] = useState(0);
 
-  // Simulate data loading and handle errors
   useEffect(() => {
-    const fetchConversations = () => {
+    const fetchConversations = async () => {
       setLoading(true);
       setHasError(false);
-      
-      // TODO: Replace with actual API call to fetch conversations
-      const timer = setTimeout(() => {
-        try {
-          // Simulate successful data fetch
+
+      try {
+        // 🔒 secureFetch is ready for real API usage
+        // const res = await secureFetch("/functions/v1/fetch_conversations");
+        // const data: ConversationType[] = await res.json();
+
+        const timer = setTimeout(() => {
           setConversations(sampleConversations);
           setActiveConversation(sampleConversations[0]);
           setLoading(false);
-        } catch (error) {
-          console.error("Error fetching conversations:", error);
-          setHasError(true);
-          setLoading(false);
-        }
-      }, 1500);
-      
-      return () => clearTimeout(timer);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+      } catch (err) {
+        console.error("Error fetching conversations:", err);
+        setHasError(true);
+        setLoading(false);
+      }
     };
-    
+
     fetchConversations();
   }, [retryCounter]);
 
   const handleNewConversation = () => {
-    // TODO: Implement API integration for conversation creation
     const newConversation: ConversationType = {
       id: Date.now().toString(),
       title: "New Conversation",
@@ -80,7 +80,6 @@ export const useConversations = () => {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeConversation) return;
 
-    // TODO: Implement input validation and sanitization
     const newMessage: MessageType = {
       id: Date.now().toString(),
       sender: "user",
@@ -88,24 +87,24 @@ export const useConversations = () => {
       timestamp: new Date(),
     };
 
-    // TODO: Replace with actual API call to AI backend service
     const assistantResponse: MessageType = {
       id: (Date.now() + 1).toString(),
       sender: "assistant",
-      text: "Thanks for your query. I'll analyze your shop data and provide insights on this shortly. This is a placeholder response since this is a demo.",
+      text: "This is a placeholder response from ShopAI.",
       timestamp: new Date(),
       containsChart: Math.random() > 0.5,
-      chartType: ["line", "bar", "area", "pie"][Math.floor(Math.random() * 4)] as "line" | "bar" | "area" | "pie",
+      chartType: ["line", "bar", "area", "pie"][
+        Math.floor(Math.random() * 4)
+      ] as "line" | "bar" | "area" | "pie",
     };
 
-    // TODO: Implement conversation update through API
-    const updatedConversation = {
+    const updatedConversation: ConversationType = {
       ...activeConversation,
       messages: [...activeConversation.messages, newMessage, assistantResponse],
     };
 
-    setConversations(
-      conversations.map((conv) => (conv.id === activeConversation.id ? updatedConversation : conv))
+    setConversations((prev) =>
+      prev.map((c) => (c.id === updatedConversation.id ? updatedConversation : c))
     );
     setActiveConversation(updatedConversation);
     setMessageInput("");
@@ -120,7 +119,7 @@ export const useConversations = () => {
   };
 
   const refetchConversations = () => {
-    setRetryCounter(prev => prev + 1);
+    setRetryCounter((prev) => prev + 1);
   };
 
   return {
@@ -134,6 +133,6 @@ export const useConversations = () => {
     handleSendMessage,
     handleSelectConversation,
     handleSelectSuggestion,
-    refetchConversations
+    refetchConversations,
   };
 };

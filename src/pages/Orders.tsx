@@ -11,8 +11,11 @@ import { DiscountedOrdersList } from "@/components/orders/DiscountedOrdersList"
 import { FulfillmentDelaysChart } from "@/components/orders/FulfillmentDelaysChart"
 import { useOrdersData } from "@/hooks/useOrdersData"
 import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard"
 
 const OrdersPage: React.FC = () => {
+  useStoreAccessGuard()
+
   const {
     data,
     isLoading,
@@ -61,18 +64,21 @@ const OrdersPage: React.FC = () => {
       <SyncStatusBanner />
       <div className="grid gap-4">
         <OrdersHeader timeframe={timeframe} onTimeframeChange={setTimeframe} />
+
         <OrderVolumeChart data={data.sales.map(s => ({
           date: s.name,
           orders: s.sales,
-          isSale: false // Adding default value for optional property
+          isSale: false
         }))} />
+
         <OrderStatusChart data={data.statuses.map(status => ({
-          label: status.status,
-          count: status.count
-        }))} />
+          name: status.status,
+          value: status.count
+        }))} colors={["#2563EB", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"]} />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AverageOrderValueChart data={[{
-            date: new Date().toISOString().split('T')[0], // Adding required date property
+            date: new Date().toISOString().split('T')[0],
             value: data.aov.value
           }]} />
           <FulfillmentDelaysChart data={data.fulfillment.map(f => ({
@@ -80,6 +86,7 @@ const OrdersPage: React.FC = () => {
             value: f.delay_days
           }))} />
         </div>
+
         <DiscountedOrdersList data={data.discounts.map((d, index) => ({
           id: index.toString(),
           ...d

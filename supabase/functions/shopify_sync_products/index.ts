@@ -1,10 +1,8 @@
-// File: supabase/functions/shopify_sync_products/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
@@ -12,10 +10,25 @@ const supabase = createClient(
 );
 
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
+const context = "shopify_sync_products";
 
-serve(async () => {
+type ShopifyProduct = {
+  id: number;
+  title: string;
+  product_type?: string;
+  vendor?: string;
+  tags?: string;
+  variants: {
+    id: number;
+    title: string;
+    sku?: string;
+    price?: string;
+    inventory_quantity?: number;
+  }[];
+};
+
+serve(async (): Promise<Response> => {
   const startTime = performance.now();
-  const context = "shopify_sync_products";
 
   try {
     logInfo(context, "Sync started");
@@ -49,7 +62,7 @@ serve(async () => {
         let synced = 0;
 
         while (pageUrl) {
-          const res = await fetch(pageUrl, { headers });
+          const res: Response = await fetch(pageUrl, { headers });
           if (!res.ok) {
             const errorText = await res.text();
             logError(context, "Shopify fetch failed", {
@@ -68,9 +81,10 @@ serve(async () => {
             break;
           }
 
-          const { products } = await res.json();
+          const json = await res.json();
+          const products: ShopifyProduct[] = json.products;
 
-          for (const p of products) {
+          for (const product of products) {
             const {
               id: shopify_product_id,
               title,
@@ -78,9 +92,9 @@ serve(async () => {
               vendor,
               tags,
               variants,
-            } = p;
+            } = product;
 
-            const { data: product, error: insertError } = await supabase
+            const { data: productRecord, error: insertError } = await supabase
               .from("shopify_products")
               .upsert({
                 shopify_product_id: shopify_product_id.toString(),
@@ -94,7 +108,7 @@ serve(async () => {
               .select("id")
               .single();
 
-            if (insertError || !product) {
+            if (insertError || !productRecord) {
               logError(context, "Product upsert failed", {
                 store: store.domain,
                 shopify_product_id,
@@ -111,7 +125,7 @@ serve(async () => {
               continue;
             }
 
-            const product_id = product.id;
+            const product_id = productRecord.id;
 
             for (const v of variants || []) {
               const { error: variantError } = await supabase
@@ -119,7 +133,7 @@ serve(async () => {
                 .upsert({
                   shopify_variant_id: v.id.toString(),
                   title: v.title,
-                  sku: v.sku,
+                  sku: v.sku || null,
                   price: v.price ? parseFloat(v.price) : null,
                   inventory_quantity: v.inventory_quantity ?? null,
                   product_id,
@@ -146,9 +160,10 @@ serve(async () => {
             synced++;
           }
 
-          const link = res.headers.get("link");
-          const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-          pageUrl = nextUrl || null;
+          const link: string | null = res.headers.get("link");
+          const nextUrl: string | null =
+            link?.match(/<([^>]+)>; rel="next"/)?.[1] ?? null;
+          pageUrl = nextUrl;
         }
 
         await supabase
@@ -167,7 +182,7 @@ serve(async () => {
         await supabase.from("sync_errors").insert({
           store_id: store.id,
           function: context,
-          error: err?.message || "Unhandled error",
+          error: err instanceof Error ? err.message : "Unhandled error",
           phase: "top-level",
         });
 

@@ -1,3 +1,5 @@
+// File: supabase/functions/disconnect_store/index.ts
+
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -13,23 +15,23 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!authHeader?.startsWith("Bearer ")) {
     return returnJsonError(401, "Missing or invalid Authorization header");
   }
 
   const jwt = authHeader.replace("Bearer ", "").trim();
   const jwtPayload = await verifyJWT(jwt);
 
-  if (!jwtPayload || !jwtPayload.store_id || typeof jwtPayload.store_id !== "string") {
-    return returnJsonError(401, "Invalid JWT or store_id missing");
+  const storeId = typeof jwtPayload?.store_id === "string" ? jwtPayload.store_id : null;
+  if (!storeId) {
+    return returnJsonError(401, "Invalid JWT or missing store_id");
   }
 
-  const storeId = jwtPayload.store_id;
-  const clientIp = req.headers.get("x-forwarded-for") ?? "unknown";
-
+  const clientIp = req.headers.get("x-forwarded-for") || "unknown";
   const rate = await checkRateLimit(clientIp, storeId);
+
   if (!rate.allowed) {
-    return returnJsonError(429, "Rate limit exceeded");
+    return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
   }
 
   const supabase = createClient(
@@ -47,15 +49,15 @@ serve(async (req: Request): Promise<Response> => {
 
   if (updateError) {
     await logError("disconnect_store", updateError, { storeId });
-    return returnJsonError(500, "Failed to disconnect store");
+    return addSecurityHeaders(returnJsonError(500, "Failed to disconnect store"));
   }
 
   await logInfo("disconnect_store", "Store disconnected", { storeId });
 
-  const res = new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
-
-  return addSecurityHeaders(res);
+  return addSecurityHeaders(
+    new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...rate.headers },
+    })
+  );
 });

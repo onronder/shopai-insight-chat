@@ -1,20 +1,46 @@
 // File: src/pages/ShopifyLogin.tsx
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from 'react';
+import {
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ShoppingBag, Sparkles, BarChart, Brain, AlertCircle } from 'lucide-react';
+import {
+  ArrowRight, ShoppingBag, Sparkles, BarChart, Brain, AlertCircle
+} from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyLogin: React.FC = () => {
+  const navigate = useNavigate();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedDataUsage, setAcceptedDataUsage] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const isFormValid = acceptedTerms && acceptedDataUsage;
+
+  useEffect(() => {
+    const checkExistingUser = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const storeId = sessionData.session?.user?.id;
+
+      if (!storeId) return;
+
+      const { data: store, error } = await supabase
+        .from('stores')
+        .select('sync_status')
+        .eq('id', storeId)
+        .maybeSingle();
+
+      if (store?.sync_status === 'completed') {
+        navigate('/dashboard');
+      }
+    };
+
+    checkExistingUser();
+  }, [navigate]);
 
   async function logConsentToSupabase(storeDomain: string) {
     const { error } = await supabase.from("user_consent_logs").insert({
@@ -36,11 +62,29 @@ const ShopifyLogin: React.FC = () => {
       return;
     }
 
-    const shopDomain = "flowtechstest.myshopify.com"; // Can be dynamic in future
-    await logConsentToSupabase(shopDomain);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const storeId = sessionData.session?.user?.id;
+
+    if (!storeId) {
+      console.error("❌ No store ID found");
+      return;
+    }
+
+    const { data: store, error } = await supabase
+      .from("stores")
+      .select("shop_domain")
+      .eq("id", storeId)
+      .maybeSingle();
+
+    if (error || !store?.shop_domain) {
+      console.error("❌ Failed to retrieve store domain", error);
+      return;
+    }
+
+    await logConsentToSupabase(store.shop_domain);
 
     const baseUrl = window.location.origin;
-    window.location.href = `${baseUrl}/functions/v1/shopify_oauth_callback?shop=${shopDomain}`;
+    window.location.href = `${baseUrl}/functions/v1/shopify_oauth_callback?shop=${store.shop_domain}`;
   };
 
   return (

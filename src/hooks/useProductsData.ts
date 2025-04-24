@@ -1,313 +1,152 @@
-import { useQuery } from "@tanstack/react-query"
-import { supabase } from "@/integrations/supabase/client"
-import { useState } from "react"
+// File: src/hooks/useProductsData.ts
+
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { secureFetch } from "@/lib/secure-fetch";
+
+export type Timeframe = "last7" | "last14" | "last30" | "last90";
 
 export interface VariantSale {
-  title: string
-  variant_id: string
-  price: number
-  count: number
-  revenue: number
-  status: "increased" | "decreased" | "stable"
-  change: number
+  title: string;
+  variant_id: string;
+  price: number;
+  count: number;
+  revenue: number;
+  status: "increased" | "decreased" | "stable";
+  change: number;
 }
 
 export interface InventoryRisk {
-  title: string
-  variant_id: string
-  sku: string
-  inventory: number
-  risk_type: "overstock" | "understock" | "optimal"
-  value: number
+  title: string;
+  variant_id: string;
+  sku: string;
+  inventory: number;
+  risk_type: "overstock" | "understock" | "optimal";
+  value: number;
 }
 
 export interface ReturnRate {
-  title: string
-  variant_id: string
-  return_rate: number
-  count: number
-  returns: number
+  title: string;
+  variant_id: string;
+  return_rate: number;
+  count: number;
+  returns: number;
 }
 
 export interface ProductLifecycle {
-  title: string
-  variant_id: string
-  lifecycle_stage: "new" | "growth" | "mature" | "decline"
-  sales_trend: number
-  last_ordered: string
-}
-
-const getAuthHeaders = async () => {
-  const session = await supabase.auth.getSession()
-  const token = session.data?.session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-const fetcher = async (url: string) => {
-  try {
-    const headers = await getAuthHeaders()
-    const res = await fetch(url, { headers })
-    
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => "Unknown error")
-      throw new Error(`Failed to fetch ${url}: ${res.status} - ${errorText}`)
-    }
-    
-    return res.json()
-  } catch (error) {
-    console.error(`Error fetching ${url}:`, error)
-    throw error
-  }
+  title: string;
+  variant_id: string;
+  lifecycle_stage: "new" | "growth" | "mature" | "decline";
+  sales_trend: number;
+  last_ordered: string;
 }
 
 export const useProductsData = () => {
-  const [timeframe, setTimeframe] = useState<string>("last30")
-  const [sortField, setSortField] = useState<string>("revenue")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [riskFilter, setRiskFilter] = useState<string>("all")
-  const [minReturnRate, setMinReturnRate] = useState<number>(3)
-  const [lifecycleFilter, setLifecycleFilter] = useState<string>("all")
+  const [timeframe, setTimeframe] = useState<Timeframe>("last30");
+  const [sortField, setSortField] = useState<keyof VariantSale>("revenue");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [riskFilter, setRiskFilter] = useState<string>("all");
+  const [minReturnRate, setMinReturnRate] = useState<number>(3);
+  const [lifecycleFilter, setLifecycleFilter] = useState<string>("all");
 
-  // Fetch variant sales data
   const variantSales = useQuery<VariantSale[]>({
     queryKey: ["variant_sales", timeframe],
     queryFn: async () => {
-      try {
-        const data = await fetcher(`/functions/v1/metrics_variant_sales?timeframe=${timeframe}`)
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0,
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0,
-            revenue: typeof item.revenue === 'number' ? item.revenue : parseFloat(item.revenue) || 0,
-            status: (item.status === "increased" || item.status === "decreased" || item.status === "stable") 
-              ? item.status 
-              : "stable",
-            change: typeof item.change === 'number' ? item.change : parseFloat(item.change) || 0
-          }))
-        } else if (data && data.variants && Array.isArray(data.variants)) {
-          // Alternative response structure
-          return data.variants.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0,
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0,
-            revenue: typeof item.revenue === 'number' ? item.revenue : parseFloat(item.revenue) || 0,
-            status: (item.status === "increased" || item.status === "decreased" || item.status === "stable") 
-              ? item.status 
-              : "stable",
-            change: typeof item.change === 'number' ? item.change : parseFloat(item.change) || 0
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in metrics_variant_sales:", error)
-        throw error
-      }
+      const res = await secureFetch(`/functions/v1/metrics_variant_sales?timeframe=${timeframe}`);
+      if (!res.ok) throw new Error("Failed to fetch variant sales");
+      return res.json();
     },
     retry: 2,
-    staleTime: 5 * 60 * 1000 // 5 minutes
-  })
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Fetch inventory risks data
   const inventoryRisks = useQuery<InventoryRisk[]>({
     queryKey: ["inventory_risks", riskFilter],
     queryFn: async () => {
-      try {
-        const data = await fetcher(`/functions/v1/metrics_inventory_risks?risk_type=${riskFilter === "all" ? "" : riskFilter}`)
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            sku: item.sku || "",
-            inventory: typeof item.inventory === 'number' ? item.inventory : parseInt(item.inventory) || 0,
-            risk_type: (item.risk_type === "overstock" || item.risk_type === "understock" || item.risk_type === "optimal") 
-              ? item.risk_type 
-              : "optimal",
-            value: typeof item.value === 'number' ? item.value : parseFloat(item.value) || 0
-          }))
-        } else if (data && data.risks && Array.isArray(data.risks)) {
-          // Alternative response structure
-          return data.risks.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            sku: item.sku || "",
-            inventory: typeof item.inventory === 'number' ? item.inventory : parseInt(item.inventory) || 0,
-            risk_type: (item.risk_type === "overstock" || item.risk_type === "understock" || item.risk_type === "optimal") 
-              ? item.risk_type 
-              : "optimal",
-            value: typeof item.value === 'number' ? item.value : parseFloat(item.value) || 0
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in metrics_inventory_risks:", error)
-        throw error
-      }
+      const queryParam = riskFilter === "all" ? "" : `?risk_type=${riskFilter}`;
+      const res = await secureFetch(`/functions/v1/metrics_inventory_risks${queryParam}`);
+      if (!res.ok) throw new Error("Failed to fetch inventory risks");
+      return res.json();
     },
     retry: 2,
-    staleTime: 10 * 60 * 1000 // 10 minutes
-  })
+    staleTime: 10 * 60 * 1000,
+  });
 
-  // Fetch return rates data
   const returnRates = useQuery<ReturnRate[]>({
     queryKey: ["return_rates", minReturnRate],
     queryFn: async () => {
-      try {
-        const data = await fetcher(`/functions/v1/metrics_return_rates?min_return_rate=${minReturnRate}`)
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            return_rate: typeof item.return_rate === 'number' ? item.return_rate : parseFloat(item.return_rate) || 0,
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0,
-            returns: typeof item.returns === 'number' ? item.returns : parseInt(item.returns) || 0
-          }))
-        } else if (data && data.products && Array.isArray(data.products)) {
-          // Alternative response structure
-          return data.products.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            return_rate: typeof item.return_rate === 'number' ? item.return_rate : parseFloat(item.return_rate) || 0,
-            count: typeof item.count === 'number' ? item.count : parseInt(item.count) || 0,
-            returns: typeof item.returns === 'number' ? item.returns : parseInt(item.returns) || 0
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in metrics_return_rates:", error)
-        throw error
-      }
+      const res = await secureFetch(`/functions/v1/metrics_return_rates?min_return_rate=${minReturnRate}`);
+      if (!res.ok) throw new Error("Failed to fetch return rates");
+      return res.json();
     },
     retry: 2,
-    staleTime: 15 * 60 * 1000 // 15 minutes
-  })
+    staleTime: 15 * 60 * 1000,
+  });
 
-  // Fetch product lifecycle data
   const productLifecycle = useQuery<ProductLifecycle[]>({
     queryKey: ["product_lifecycle", lifecycleFilter],
     queryFn: async () => {
-      try {
-        const data = await fetcher(`/functions/v1/metrics_product_lifecycle?stage=${lifecycleFilter === "all" ? "" : lifecycleFilter}`)
-        
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          return data.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            lifecycle_stage: (item.lifecycle_stage === "new" || item.lifecycle_stage === "growth" || 
-                            item.lifecycle_stage === "mature" || item.lifecycle_stage === "decline") 
-              ? item.lifecycle_stage 
-              : "mature",
-            sales_trend: typeof item.sales_trend === 'number' ? item.sales_trend : parseFloat(item.sales_trend) || 0,
-            last_ordered: item.last_ordered || "N/A"
-          }))
-        } else if (data && data.stages && Array.isArray(data.stages)) {
-          // Alternative response structure for aggregated data
-          const result: ProductLifecycle[] = []
-          data.stages.forEach((stage: any) => {
-            if (stage.products && Array.isArray(stage.products)) {
-              stage.products.forEach((product: any) => {
-                result.push({
-                  title: product.title || "Unknown Product",
-                  variant_id: product.variant_id || product.id || "",
-                  lifecycle_stage: stage.stage.toLowerCase() || "mature",
-                  sales_trend: typeof product.sales_trend === 'number' ? product.sales_trend : parseFloat(product.sales_trend) || 0,
-                  last_ordered: product.last_ordered || "N/A"
-                })
-              })
-            }
-          })
-          return result
-        } else if (data && data.products && Array.isArray(data.products)) {
-          // Another alternative structure
-          return data.products.map(item => ({
-            title: item.title || item.product_title || "Unknown Product",
-            variant_id: item.variant_id || item.id || "",
-            lifecycle_stage: (item.lifecycle_stage === "new" || item.lifecycle_stage === "growth" || 
-                            item.lifecycle_stage === "mature" || item.lifecycle_stage === "decline") 
-              ? item.lifecycle_stage 
-              : "mature",
-            sales_trend: typeof item.sales_trend === 'number' ? item.sales_trend : parseFloat(item.sales_trend) || 0,
-            last_ordered: item.last_ordered || "N/A"
-          }))
-        }
-        
-        return []
-      } catch (error) {
-        console.error("Error in metrics_product_lifecycle:", error)
-        throw error
-      }
+      const queryParam = lifecycleFilter === "all" ? "" : `?stage=${lifecycleFilter}`;
+      const res = await secureFetch(`/functions/v1/metrics_product_lifecycle${queryParam}`);
+      if (!res.ok) throw new Error("Failed to fetch product lifecycle");
+      return res.json();
     },
     retry: 2,
-    staleTime: 15 * 60 * 1000 // 15 minutes
-  })
+    staleTime: 15 * 60 * 1000,
+  });
 
-  // Sorting function for variant sales
-  const getSortedVariantSales = () => {
-    if (!variantSales.data) return []
-    
+  const getSortedVariantSales = (): VariantSale[] => {
+    if (!variantSales.data) return [];
     return [...variantSales.data].sort((a, b) => {
-      const aValue = a[sortField as keyof VariantSale]
-      const bValue = b[sortField as keyof VariantSale]
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
       }
-      
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue) 
-          : bValue.localeCompare(aValue)
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDirection === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
       }
-      
-      return 0
-    })
-  }
+      return 0;
+    });
+  };
 
-  // Returns a Promise that resolves when all refetches are done
   const refetchAll = async () => {
-    try {
-      const results = await Promise.all([
-        variantSales.refetch(),
-        inventoryRisks.refetch(),
-        returnRates.refetch(),
-        productLifecycle.refetch()
-      ])
-      
-      console.log("All products data refetched successfully")
-      return results
-    } catch (error) {
-      console.error("Error refetching products data:", error)
-      throw error
-    }
-  }
+    await Promise.all([
+      variantSales.refetch(),
+      inventoryRisks.refetch(),
+      returnRates.refetch(),
+      productLifecycle.refetch(),
+    ]);
+  };
 
-  const isLoading = variantSales.isLoading || inventoryRisks.isLoading || 
-                   returnRates.isLoading || productLifecycle.isLoading
-  
-  const isFetching = variantSales.isFetching || inventoryRisks.isFetching || 
-                    returnRates.isFetching || productLifecycle.isFetching
-  
-  // Aggregate all errors
-  const error = variantSales.error || inventoryRisks.error || 
-               returnRates.error || productLifecycle.error
-  
-  const errorMessage = error ? (error instanceof Error ? error.message : "Unknown error") : null
+  const isLoading =
+    variantSales.isLoading ||
+    inventoryRisks.isLoading ||
+    returnRates.isLoading ||
+    productLifecycle.isLoading;
 
-  // Check if we have any data
-  const hasData = !!variantSales.data?.length || !!inventoryRisks.data?.length || 
-                 !!returnRates.data?.length || !!productLifecycle.data?.length
+  const isFetching =
+    variantSales.isFetching ||
+    inventoryRisks.isFetching ||
+    returnRates.isFetching ||
+    productLifecycle.isFetching;
+
+  const error =
+    variantSales.error ||
+    inventoryRisks.error ||
+    returnRates.error ||
+    productLifecycle.error;
+
+  const errorMessage =
+    error instanceof Error ? error.message : "Unknown error";
+
+  const hasData =
+    !!variantSales.data?.length ||
+    !!inventoryRisks.data?.length ||
+    !!returnRates.data?.length ||
+    !!productLifecycle.data?.length;
 
   return {
     isLoading,
@@ -320,23 +159,23 @@ export const useProductsData = () => {
     productLifecycleData: productLifecycle.data || [],
     refetch: refetchAll,
     timeframe,
-    setTimeframe: (newTimeframe: string) => setTimeframe(newTimeframe),
+    setTimeframe: (newTimeframe: Timeframe) => setTimeframe(newTimeframe),
     sortField,
     sortDirection,
-    setSortField: (field: string) => setSortField(field),
-    setSortDirection: (direction: "asc" | "desc") => setSortDirection(direction),
+    setSortField: (field: keyof VariantSale) => setSortField(field),
+    setSortDirection: (dir: "asc" | "desc") => setSortDirection(dir),
     riskFilter,
-    setRiskFilter: (filter: string) => setRiskFilter(filter),
+    setRiskFilter,
     minReturnRate,
-    setMinReturnRate: (rate: number) => setMinReturnRate(rate),
+    setMinReturnRate,
     lifecycleFilter,
-    setLifecycleFilter: (filter: string) => setLifecycleFilter(filter),
+    setLifecycleFilter,
     hasData,
     status: {
       variantSales: variantSales.status,
       inventoryRisks: inventoryRisks.status,
       returnRates: returnRates.status,
-      productLifecycle: productLifecycle.status
-    }
-  }
-}
+      productLifecycle: productLifecycle.status,
+    },
+  };
+};

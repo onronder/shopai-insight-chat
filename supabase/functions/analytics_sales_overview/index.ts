@@ -1,11 +1,11 @@
-// supabase/functions/analytics_sales_overview/index.ts
+// File: supabase/functions/analytics_sales_overview/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { checkRateLimit, addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
@@ -26,6 +26,7 @@ serve(async (req) => {
     const token = authHeader?.replace("Bearer ", "");
 
     let store_id: string | null = null;
+
     const { data: { user } } = await supabase.auth.getUser(token);
     if (user?.id) store_id = user.id;
 
@@ -44,7 +45,6 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
     }
 
-    // Calculate range
     const daysMap: Record<string, number> = {
       last7: 7,
       last30: 30,
@@ -71,8 +71,8 @@ serve(async (req) => {
         view === "weekly"
           ? `Week ${new Date(row.day).getWeek()}`
           : view === "monthly"
-          ? new Date(row.day).toLocaleString("default", { month: "short" })
-          : row.day,
+            ? new Date(row.day).toLocaleString("default", { month: "short" })
+            : row.day,
       total: Number(row.total),
       net: Number(row.net),
       refunds: Number(row.refunds),
@@ -88,7 +88,10 @@ serve(async (req) => {
     return addSecurityHeaders(
       new Response(JSON.stringify(grouped), {
         status: 200,
-        headers: { "Content-Type": "application/json", ...rate.headers },
+        headers: {
+          "Content-Type": "application/json",
+          ...rate.headers,
+        },
       })
     );
   } catch (err) {
@@ -97,16 +100,18 @@ serve(async (req) => {
   }
 });
 
-// Helper for week numbers
+// Week number extension
 declare global {
   interface Date {
     getWeek(): number;
   }
 }
-Date.prototype.getWeek = function () {
+
+Date.prototype.getWeek = function (): number {
   const date = new Date(this.getTime());
   date.setHours(0, 0, 0, 0);
   date.setDate(date.getDate() + 4 - (date.getDay() || 7));
   const yearStart = new Date(date.getFullYear(), 0, 1);
-  return Math.ceil(((date as any) - yearStart) / 86400000 + 1) / 7 | 0;
+  const days = Math.floor((date.getTime() - yearStart.getTime()) / 86400000);
+  return Math.ceil((days + 1) / 7);
 };

@@ -1,10 +1,10 @@
-// supabase/functions/shopify_delta_products/index.ts
+// File: supabase/functions/shopify_delta_products/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
@@ -13,7 +13,7 @@ const supabase = createClient(
 
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   const startTime = performance.now();
   const path = new URL(req.url).pathname;
 
@@ -26,7 +26,7 @@ serve(async (req) => {
       .neq("access_token", null);
 
     if (error || !stores) {
-      logError("shopify_delta_products", error, {});
+      logError("shopify_delta_products", error ?? "No stores found");
       return addSecurityHeaders(returnJsonError(500, "Failed to load store list"));
     }
 
@@ -41,7 +41,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       };
 
-      let pageUrl = baseUrl;
+      let pageUrl: string | null = baseUrl;
       let productCount = 0;
       const now = new Date().toISOString();
 
@@ -51,14 +51,15 @@ serve(async (req) => {
         .eq("id", store.id);
 
       while (pageUrl) {
-        const res = await fetch(pageUrl, { headers });
+        const res: Response = await fetch(pageUrl, { headers });
         if (!res.ok) {
           const errText = await res.text();
           logError("shopify_delta_products", errText, { store: store.domain });
           break;
         }
 
-        const { products } = await res.json();
+        const json = await res.json();
+        const products = json.products ?? [];
 
         for (const p of products) {
           const {
@@ -87,7 +88,7 @@ serve(async (req) => {
             .single();
 
           if (insertError || !prod) {
-            logError("shopify_delta_products", insertError?.message, {
+            logError("shopify_delta_products", insertError?.message ?? "Insert failed", {
               shopify_product_id,
               store_id: store.id,
             });
@@ -96,7 +97,7 @@ serve(async (req) => {
 
           const product_id = prod.id;
 
-          for (const v of variants || []) {
+          for (const v of variants ?? []) {
             const variantUpsertError = await supabase
               .from("shopify_product_variants")
               .upsert({
@@ -123,9 +124,9 @@ serve(async (req) => {
           productCount++;
         }
 
-        const link = res.headers.get("link");
-        const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-        pageUrl = nextUrl || null;
+        const link: string | null = res.headers.get("link");
+        const nextUrl: string | undefined = link?.match(/<([^>]+)>; rel="next"/)?.[1];
+        pageUrl = nextUrl ?? null;
       }
 
       await supabase
@@ -142,9 +143,15 @@ serve(async (req) => {
     const duration = performance.now() - startTime;
     logInfo("shopify_delta_products", "Full sync completed", { duration_ms: duration });
 
-    return addSecurityHeaders(new Response("Delta product sync completed", { status: 200 }));
+    return addSecurityHeaders(
+      new Response("Delta product sync completed", { status: 200 })
+    );
   } catch (err) {
-    logError("shopify_delta_products", err, { path });
-    return addSecurityHeaders(returnJsonError(500, "Unexpected error occurred"));
+    logError("shopify_delta_products", err instanceof Error ? err : new Error("Unknown error"), {
+      path
+    });
+    return addSecurityHeaders(
+      returnJsonError(500, "Unexpected error occurred")
+    );
   }
 });

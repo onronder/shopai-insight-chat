@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { addSecurityHeaders, checkRateLimit, returnJsonError } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 // Initialize Supabase admin client
 const supabase = createClient(
@@ -11,16 +11,16 @@ const supabase = createClient(
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
 );
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   const startTime = performance.now();
   const path = new URL(req.url).pathname;
 
   try {
     logInfo("metrics_ltv_distribution", "Request started", { path });
 
-    // Authentication: Supabase or JWT fallback
+    // Auth
     const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
+    const token = authHeader?.replace("Bearer ", "").trim();
 
     let store_id: string | null = null;
 
@@ -47,7 +47,7 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
     }
 
-    // Query view_ltv_distribution
+    // Query view
     const { data, error } = await supabase
       .from("view_ltv_distribution")
       .select("*")
@@ -61,8 +61,8 @@ serve(async (req) => {
 
     logInfo("metrics_ltv_distribution", "Request completed", {
       store_id,
+      records: data?.length ?? 0,
       duration_ms: performance.now() - startTime,
-      records: data?.length ?? 0
     });
 
     return addSecurityHeaders(

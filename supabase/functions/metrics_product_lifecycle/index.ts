@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { checkRateLimit, addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 // Supabase admin client
 const supabase = createClient(
@@ -25,7 +25,7 @@ serve(async (req) => {
 
     let store_id: string | null = null;
 
-    // Try Supabase session
+    // Session-based auth
     try {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user?.id) store_id = user.id;
@@ -33,7 +33,7 @@ serve(async (req) => {
       store_id = null;
     }
 
-    // Fallback to JWT
+    // JWT fallback
     if (!store_id && token) {
       const verified = await verifyJWT(token);
       if (verified?.sub) store_id = verified.sub;
@@ -43,13 +43,14 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(401, "Unauthorized"));
     }
 
+    // Rate limiting
     const clientIp = req.headers.get("x-real-ip") || "unknown";
     const rate = await checkRateLimit(clientIp, store_id);
     if (!rate.allowed) {
       return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
     }
 
-    // Fetch lifecycle data
+    // Query product lifecycle view
     const { data, error } = await supabase
       .from("vw_product_lifecycle")
       .select("lifecycle_stage, product_count, revenue_share")
@@ -61,17 +62,16 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(500, "Failed to fetch product lifecycle data"));
     }
 
-    // Transform response
     const transformed = (data ?? []).map((item) => ({
       stage: item.lifecycle_stage || "Unknown",
-      count: Number(item.product_count ?? 0),
-      revenueShare: Number(item.revenue_share ?? 0)
+      count: Number(item.product_count || 0),
+      revenueShare: Number(item.revenue_share || 0),
     }));
 
     logInfo("metrics_product_lifecycle", "Request completed", {
       store_id,
       count: transformed.length,
-      duration_ms: performance.now() - startTime
+      duration_ms: performance.now() - startTime,
     });
 
     return addSecurityHeaders(
@@ -79,12 +79,17 @@ serve(async (req) => {
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          ...rate.headers
-        }
+          ...rate.headers,
+        },
       })
     );
   } catch (err) {
-    logError("metrics_product_lifecycle", err, { path });
-    return addSecurityHeaders(returnJsonError(500, "Internal Server Error"));
+    logError("metrics_product_lifecycle", err instanceof Error ? err : new Error("Unknown error"), {
+      path,
+    });
+
+    return addSecurityHeaders(
+      returnJsonError(500, "Internal Server Error")
+    );
   }
 });

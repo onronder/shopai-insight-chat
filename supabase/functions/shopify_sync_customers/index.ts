@@ -1,10 +1,8 @@
-// File: supabase/functions/shopify_sync_customers/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
@@ -34,7 +32,6 @@ serve(async () => {
       const now = new Date().toISOString();
 
       try {
-        // Set sync start
         await supabase
           .from("stores")
           .update({ sync_status: "syncing", sync_started_at: now })
@@ -50,7 +47,7 @@ serve(async () => {
         let synced = 0;
 
         while (pageUrl) {
-          const res = await fetch(pageUrl, { headers });
+          const res: Response = await fetch(pageUrl, { headers });
           if (!res.ok) {
             const errorText = await res.text();
             logError(context, "Shopify fetch failed", {
@@ -69,7 +66,8 @@ serve(async () => {
             break;
           }
 
-          const { customers } = await res.json();
+          const body = await res.json();
+          const customers = body.customers ?? [];
 
           for (const customer of customers) {
             const {
@@ -127,9 +125,9 @@ serve(async () => {
             synced++;
           }
 
-          const link = res.headers.get("link");
-          const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-          pageUrl = nextUrl || null;
+          const linkHeader: string | null = res.headers.get("link");
+          const nextUrlMatch = linkHeader?.match(/<([^>]+)>;\s*rel=next/);
+          pageUrl = nextUrlMatch?.[1] ?? null;
         }
 
         await supabase.from("stores").update({
@@ -142,12 +140,17 @@ serve(async () => {
           customers_synced: synced
         });
       } catch (err) {
-        logError(context, "Top-level store error", { store: store.domain, err });
+        const errorMessage = err instanceof Error ? err.message : String(err);
+
+        logError(context, "Top-level store error", {
+          store: store.domain,
+          error: errorMessage
+        });
 
         await supabase.from("sync_errors").insert({
           store_id: store.id,
           function: context,
-          error: err?.message || "Unhandled store sync error",
+          error: errorMessage,
           phase: "top-level"
         });
 
@@ -166,7 +169,8 @@ serve(async () => {
       new Response("Customer sync complete", { status: 200 })
     );
   } catch (err) {
-    logError(context, err, { context });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logError(context, errorMessage);
     return addSecurityHeaders(returnJsonError(500, "Customer sync failed"));
   }
 });

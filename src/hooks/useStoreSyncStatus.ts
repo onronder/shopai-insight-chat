@@ -1,41 +1,44 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// File: src/hooks/useStoreSyncStatus.ts
+
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { secureFetch } from "@/lib/secure-fetch";
 
 export interface StoreSyncStatus {
-  sync_status: 'idle' | 'syncing' | 'completed' | 'failed' | null;
+  sync_status: "idle" | "syncing" | "completed" | "failed" | null;
   sync_started_at: string | null;
   sync_finished_at: string | null;
   updated_at: string | null;
   shop_domain?: string | null;
 }
 
+const validStatus = ["idle", "syncing", "completed", "failed"] as const;
+type ValidStatus = (typeof validStatus)[number];
+
 const getCurrentStoreId = async (): Promise<string | null> => {
   try {
     const { data } = await supabase.auth.getSession();
-    if (data.session?.user?.id) return data.session.user.id;
-
-    const localStoreId = localStorage.getItem('storeId');
-    return localStoreId || null;
+    return data.session?.user?.id ?? localStorage.getItem("storeId") ?? null;
   } catch (error) {
-    console.error('❌ Failed to retrieve store ID:', error);
+    console.error("❌ Failed to retrieve store ID:", error);
     return null;
   }
 };
 
 export function useStoreSyncStatus() {
   const storeIdQuery = useQuery({
-    queryKey: ['storeAuth'],
+    queryKey: ["storeAuth"],
     queryFn: getCurrentStoreId,
   });
 
   const storeId = storeIdQuery.data;
 
-  const syncStatusQuery = useQuery({
-    queryKey: ['storeSyncStatus', storeId],
-    queryFn: async (): Promise<StoreSyncStatus> => {
+  const syncStatusQuery = useQuery<StoreSyncStatus>({
+    queryKey: ["storeSyncStatus", storeId],
+    queryFn: async () => {
       if (!storeId) {
         return {
-          sync_status: 'idle',
+          sync_status: "idle",
           sync_started_at: null,
           sync_finished_at: null,
           updated_at: null,
@@ -43,23 +46,17 @@ export function useStoreSyncStatus() {
         };
       }
 
-      const { data, error } = await supabase
-        .from('stores')
-        .select('sync_status, sync_started_at, sync_finished_at, updated_at, shop_domain')
-        .eq('id', storeId)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const res = await secureFetch(
+        `/rest/v1/stores?select=sync_status,sync_started_at,sync_finished_at,updated_at,shop_domain&id=eq.${storeId}`
+      );
+      const result = await res.json();
 
-      if (error) throw error;
+      const data = result?.[0];
 
-      const validStatus = ['idle', 'syncing', 'completed', 'failed'] as const;
-      type ValidStatus = typeof validStatus[number];
-
-      const status: ValidStatus =
-        validStatus.includes(data?.sync_status as ValidStatus)
-          ? (data?.sync_status as ValidStatus)
-          : 'idle';
+      const incoming = data?.sync_status;
+      const status: ValidStatus = validStatus.includes(incoming as ValidStatus)
+        ? (incoming as ValidStatus)
+        : "idle";
 
       return {
         sync_status: status,
@@ -70,33 +67,27 @@ export function useStoreSyncStatus() {
       };
     },
     enabled: !!storeId,
-    refetchInterval: (query) => {
-      const status = query.state.data?.sync_status;
-      return status === 'syncing' ? 4000 : false;
-    },
+    refetchInterval: (query) =>
+      query.state.data?.sync_status === "syncing" ? 4000 : false,
     refetchIntervalInBackground: true,
     staleTime: 5000,
   });
 
   const syncData = syncStatusQuery.data;
 
-  const isSyncing = syncData?.sync_status === 'syncing';
-  const isSynced = syncData?.sync_status === 'completed';
-  const isFailed = syncData?.sync_status === 'failed';
-
   return {
-    syncStatus: syncData?.sync_status || 'idle',
+    syncStatus: syncData?.sync_status ?? "idle",
     syncStartedAt: syncData?.sync_started_at,
     syncFinishedAt: syncData?.sync_finished_at,
     updatedAt: syncData?.updated_at,
     storeDomain: syncData?.shop_domain ?? null,
     isLoading: storeIdQuery.isLoading || syncStatusQuery.isLoading,
-    isError: syncStatusQuery.isError || storeIdQuery.isError,
-    error: syncStatusQuery.error || storeIdQuery.error,
+    isError: storeIdQuery.isError || syncStatusQuery.isError,
+    error: storeIdQuery.error || syncStatusQuery.error,
     refetch: syncStatusQuery.refetch,
     storeId,
-    isSyncing,
-    isSynced,
-    isFailed,
+    isSyncing: syncData?.sync_status === "syncing",
+    isSynced: syncData?.sync_status === "completed",
+    isFailed: syncData?.sync_status === "failed",
   };
 }

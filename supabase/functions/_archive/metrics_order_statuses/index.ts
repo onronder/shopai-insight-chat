@@ -1,3 +1,12 @@
+/** 
+ * @deprecated 
+ * This file is deprecated and not used anywhere in the current architecture.
+ * All data fetching is handled via secureFetch + typed React Query hooks.
+ * Safe to delete entirely. 
+ */
+
+
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyJWT } from "../_shared/jwt.ts";

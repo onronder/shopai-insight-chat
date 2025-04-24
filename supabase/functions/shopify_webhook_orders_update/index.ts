@@ -1,17 +1,18 @@
 // File: supabase/functions/shopify_webhook_orders_update/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createHmac } from "https://deno.land/std@0.177.0/crypto/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
-const SUPABASE_URL = Deno.env.get("PROJECT_SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!;
+const supabase = createClient(
+  Deno.env.get("PROJECT_SUPABASE_URL")!,
+  Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
+);
+
 const SHOPIFY_API_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
-
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+const context = "shopify_webhook_orders_update";
 
 serve(async (req) => {
   const start = performance.now();
@@ -19,8 +20,8 @@ serve(async (req) => {
 
   try {
     const rawBody = await req.text();
-    const hmacHeader = req.headers.get("X-Shopify-Hmac-Sha256") || "";
     const shopifyDomain = req.headers.get("X-Shopify-Shop-Domain") || "";
+    const hmacHeader = req.headers.get("X-Shopify-Hmac-Sha256") || "";
 
     // ✅ HMAC Validation
     const encoder = new TextEncoder();
@@ -35,6 +36,7 @@ serve(async (req) => {
     const generatedHmac = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
     if (generatedHmac !== hmacHeader) {
+      logError(context, "HMAC mismatch", { shopifyDomain });
       return returnJsonError(401, "Unauthorized");
     }
 
@@ -52,6 +54,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
+      logError(context, "Store not found", { shopifyDomain });
       return returnJsonError(404, "Store not found");
     }
 
@@ -76,18 +79,15 @@ serve(async (req) => {
       .eq("store_id", store_id);
 
     if (updateErr) {
-      logError("shopify_webhook_orders_update", updateErr, {
-        shopify_order_id,
-        store_id
-      });
+      logError(context, "Order update failed", { store_id, shopify_order_id, error: updateErr.message });
       return returnJsonError(500, "Failed to update order");
     }
 
-    // ✅ Update Line Items
-    for (const item of payload.line_items || []) {
+    // ✅ Upsert Line Items (no order_id resolved here, only shopify_order_id)
+    for (const item of payload.line_items ?? []) {
       await supabase.from("shopify_order_line_items").upsert({
         store_id,
-        order_id: null, // keep null if you don't resolve the internal order_id
+        order_id: null,
         shopify_order_id,
         product_id: null,
         variant_id: null,
@@ -106,17 +106,14 @@ serve(async (req) => {
       payload
     });
 
-    logInfo("shopify_webhook_orders_update", "Order updated", {
-      store_id,
-      shopify_order_id
-    });
+    logInfo(context, "Order updated", { store_id, shopify_order_id });
 
     return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    logError("shopify_webhook_orders_update", err, { path });
+    logError(context, err, { path });
     return returnJsonError(500, "Webhook Error");
   } finally {
-    const duration = performance.now() - performance.now();
-    logInfo("shopify_webhook_orders_update", "Completed", { path, duration });
+    const duration = performance.now() - start;
+    logInfo(context, "Completed", { path, duration_ms: duration });
   }
 });

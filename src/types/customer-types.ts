@@ -1,4 +1,4 @@
-
+// ⛔ Dev only — not used in production
 export interface Customer {
   id: number;
   name: string;

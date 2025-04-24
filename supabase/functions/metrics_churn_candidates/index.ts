@@ -3,8 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { addSecurityHeaders, returnJsonError, checkRateLimit } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
+// Supabase admin client
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
@@ -19,10 +20,8 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
-
     let store_id: string | null = null;
 
-    // Session token fallback with JWT verification
     try {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user?.id) store_id = user.id;

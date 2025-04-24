@@ -1,17 +1,20 @@
+// File: supabase/functions/shopify_oauth_callback/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { createJWT } from "../_shared/jwt.ts";
 import { setSecureCookie } from "../_shared/cookies.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
-// Env
+// Env vars
 const SHOPIFY_API_KEY = Deno.env.get("PROJECT_SHOPIFY_API_KEY")!;
 const SHOPIFY_API_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
 const SUPABASE_URL = Deno.env.get("PROJECT_SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!;
+const PRODUCTION_URL = "https://www.shopai-insight.com"; // ✅ updated for production
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -69,7 +72,7 @@ serve(async (req) => {
     }
 
     // Check if store exists
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing } = await supabase
       .from("stores")
       .select("id")
       .eq("shop_domain", shop)
@@ -103,12 +106,12 @@ serve(async (req) => {
       sub: store_id,
       role: "authenticated",
       iat: now,
-      exp: now + 60 * 60,
+      exp: now + 3600,
     });
 
     const headers = new Headers();
     headers.set("Set-Cookie", setSecureCookie("sb-token", jwt, 3600, "Path=/"));
-    headers.set("Location", "http://localhost:3000/dashboard");
+    headers.set("Location", `${PRODUCTION_URL}/dashboard`); // ✅ updated redirect
 
     logInfo("shopify_oauth_callback", "JWT issued and user redirected", {
       store_id,

@@ -19,33 +19,34 @@ export async function secureFetch(
 ): Promise<Response> {
   let token = getCookie("sb-token");
 
-  let response = await fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      "Content-Type": "application/json"
-    }
+  const buildHeaders = (existing: HeadersInit = {}): HeadersInit => ({
+    ...existing,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    "Content-Type": "application/json",
   });
 
-  // If token expired, try refreshing and retrying once
+  let response = await fetch(url, {
+    ...options,
+    headers: buildHeaders(options.headers),
+  });
+
   if (response.status === 401) {
     try {
       const refreshed = await refreshToken();
       if (refreshed) {
-        token = getCookie("sb-token"); // re-read after refresh
+        token = getCookie("sb-token");
         response = await fetch(url, {
           ...options,
-          headers: {
-            ...options.headers,
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            "Content-Type": "application/json"
-          }
+          headers: buildHeaders(options.headers),
         });
       }
     } catch (err) {
       console.error("🔐 Token refresh failed", err);
     }
+  }
+
+  if (response.status === 401) {
+    throw new Error("Unauthorized: Unable to refresh access token");
   }
 
   return response;

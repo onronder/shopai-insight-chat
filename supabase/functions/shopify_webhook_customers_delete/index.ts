@@ -1,28 +1,62 @@
 // File: supabase/functions/shopify_webhook_customers_delete/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
 );
 
+const SHOPIFY_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
+const context = "shopify_webhook_customers_delete";
+
+// --- Constant-time comparison ---
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+// --- HMAC Verification ---
+async function verifyShopifyWebhook(req: Request, rawBody: string): Promise<boolean> {
+  const receivedHmac = req.headers.get("x-shopify-hmac-sha256") || "";
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(SHOPIFY_SECRET);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody));
+  const expectedHmac = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  return constantTimeEqual(receivedHmac, expectedHmac);
+}
+
 serve(async (req) => {
   const start = performance.now();
   const path = new URL(req.url).pathname;
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+
+    if (!(await verifyShopifyWebhook(req, rawBody))) {
+      logError(context, "Invalid HMAC signature", { path });
+      return addSecurityHeaders(returnJsonError(401, "Unauthorized"));
+    }
+
+    const payload = JSON.parse(rawBody);
     const shopifyDomain = req.headers.get("x-shopify-shop-domain") || "";
 
-    logInfo("shopify_webhook_customers_delete", "Webhook received", {
-      path,
-      shopifyDomain,
-    });
+    logInfo(context, "Webhook received", { path, shopifyDomain });
 
     const { data: store, error: storeError } = await supabase
       .from("shopify_stores")
@@ -31,9 +65,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
-      logError("shopify_webhook_customers_delete", storeError || "Store not found", {
-        shopifyDomain,
-      });
+      logError(context, storeError || "Store not found", { shopifyDomain });
       return returnJsonError(404, "Store not found");
     }
 
@@ -55,17 +87,17 @@ serve(async (req) => {
       payload,
     });
 
-    logInfo("shopify_webhook_customers_delete", "Customer marked as deleted", {
+    logInfo(context, "Customer marked as deleted", {
       store_id: store.id,
       shopify_customer_id,
     });
 
     const duration = performance.now() - start;
-    logInfo("shopify_webhook_customers_delete", "Completed", { duration });
+    logInfo(context, "Completed", { duration });
 
     return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    logError("shopify_webhook_customers_delete", err, { path });
+    logError(context, err, { path });
     return returnJsonError(500, "Webhook Error");
   }
 });

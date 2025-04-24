@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { checkRateLimit, addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 // Supabase admin client
 const supabase = createClient(
@@ -54,6 +54,11 @@ serve(async (req) => {
       logError("metrics_avg_order_value", error, { store_id });
       return addSecurityHeaders(returnJsonError(500, "Failed to fetch AOV"));
     }
+
+    logInfo("metrics_avg_order_value", "AOV fetched", {
+      store_id,
+      duration_ms: performance.now() - startTime,
+    });
 
     return addSecurityHeaders(
       new Response(JSON.stringify(data), {

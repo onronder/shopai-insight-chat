@@ -1,9 +1,11 @@
+// File: supabase/functions/analytics_geo_heatmap/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { addSecurityHeaders, returnJsonError, checkRateLimit } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 // Initialize Supabase admin client
 const supabase = createClient(
@@ -52,7 +54,7 @@ serve(async (req) => {
       .not("lat", "is", null)
       .not("lng", "is", null)
       .order("total_orders", { ascending: false })
-      .limit(500); // Limit for performance
+      .limit(500);
 
     if (error) {
       logError("analytics_geo_heatmap", error, { store_id });

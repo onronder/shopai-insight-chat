@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+// File: src/hooks/useLtvDistributionData.ts
 
-// Raw view type from Supabase
-type RawLtvRow = Database["public"]["Views"]["vw_ltv_distribution_percentiles"]["Row"];
+import { useQuery } from "@tanstack/react-query";
+import { secureFetch } from "@/lib/secure-fetch";
+
+// Row structure as returned from Supabase view
+interface RawLtvRow {
+  percentile_rank: number | null;
+}
 
 // Final grouped bucket data passed to chart
 export type LtvPercentileBucket = {
@@ -11,7 +14,7 @@ export type LtvPercentileBucket = {
   count: number;
 };
 
-// Bucketing helper
+// Bucketing helper based on percentile rank
 const getBucket = (rank: number): string => {
   if (rank < 20) return "$0–99";
   if (rank < 40) return "$100–249";
@@ -24,21 +27,26 @@ export function useLtvDistributionData() {
   return useQuery<LtvPercentileBucket[], Error>({
     queryKey: ["ltv-distribution"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_ltv_distribution_percentiles")
-        .select("percentile_rank");
+      const response = await secureFetch("/rest/v1/vw_ltv_distribution_percentiles?select=percentile_rank");
 
-      if (error) throw error;
-      if (!data) return [];
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        throw new Error(`Failed to load LTV distribution: ${response.status} - ${errorText}`);
+      }
 
+      const data: RawLtvRow[] = await response.json();
       const grouped: Record<string, number> = {};
 
       for (const row of data) {
-        const bucket = getBucket(row.percentile_rank);
+        const rank = row.percentile_rank;
+        if (rank === null) continue;
+
+        const bucket = getBucket(rank);
         grouped[bucket] = (grouped[bucket] || 0) + 1;
       }
 
       return Object.entries(grouped).map(([bucket, count]) => ({ bucket, count }));
     },
+    staleTime: 5 * 60 * 1000,
   });
 }

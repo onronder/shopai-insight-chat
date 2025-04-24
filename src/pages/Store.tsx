@@ -1,13 +1,18 @@
+// File: src/pages/Store.tsx
+
 import React from "react"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { useStoreData } from "@/hooks/useStoreData"
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"   
+import { Badge } from "@/components/ui/badge"
 import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 
 export default function Store() {
+  useStoreAccessGuard()
+
   const { data, isLoading, error } = useStoreData()
 
   if (isLoading) {

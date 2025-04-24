@@ -1,11 +1,9 @@
-// File: supabase/functions/metrics_customer_segments/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { addSecurityHeaders, returnJsonError, checkRateLimit } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 // Supabase admin client
 const supabase = createClient(
@@ -25,7 +23,6 @@ serve(async (req) => {
 
     let store_id: string | null = null;
 
-    // Attempt Supabase session-based auth
     try {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user?.id) store_id = user.id;
@@ -33,7 +30,6 @@ serve(async (req) => {
       store_id = null;
     }
 
-    // Fallback to JWT verification if session is invalid
     if (!store_id && token) {
       const verified = await verifyJWT(token);
       if (verified?.sub) store_id = verified.sub;
@@ -43,14 +39,13 @@ serve(async (req) => {
       return addSecurityHeaders(returnJsonError(401, "Unauthorized"));
     }
 
-    // Apply rate limiting
     const clientIp = req.headers.get("x-real-ip") || "unknown";
     const rate = await checkRateLimit(clientIp, store_id);
+
     if (!rate.allowed) {
       return addSecurityHeaders(returnJsonError(429, "Rate limit exceeded"), rate.headers);
     }
 
-    // Query the view
     const { data, error } = await supabase
       .from("view_customer_segments")
       .select("*")
@@ -65,11 +60,11 @@ serve(async (req) => {
     logInfo("metrics_customer_segments", "Request completed", {
       store_id,
       duration_ms: performance.now() - startTime,
-      records: data.length,
+      records: data?.length ?? 0,
     });
 
     return addSecurityHeaders(
-      new Response(JSON.stringify(data), {
+      new Response(JSON.stringify(data ?? []), {
         status: 200,
         headers: {
           "Content-Type": "application/json",

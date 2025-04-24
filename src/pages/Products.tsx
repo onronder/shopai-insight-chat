@@ -12,21 +12,30 @@ import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Card, CardContent } from "@/components/ui/card"
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard"
 
 const ProductsPage: React.FC = () => {
+  useStoreAccessGuard()
+
   const {
-    data,
     isLoading,
-    loadingStates,
     error,
-    errors,
+    errorMessage,
+    variantSalesData,
+    inventoryRisksData,
+    returnRatesData,
+    productLifecycleData,
     refetch,
     timeframe,
     setTimeframe,
+    status,
     hasData
   } = useProductsData()
 
-  // Initial loading state for the entire page
+  const handleTimeframeChange = (newTimeframe: Timeframe) => {
+    setTimeframe(newTimeframe)
+  }
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -36,27 +45,25 @@ const ProductsPage: React.FC = () => {
     )
   }
 
-  // Error state for the entire page
   if (error) {
     return (
       <AppLayout>
         <SyncStatusBanner />
-        <ErrorState 
-          title="Failed to load product insights" 
-          description={error.message} 
+        <ErrorState
+          title="Failed to load product insights"
+          description={errorMessage || "Something went wrong"}
           action={<Button onClick={() => refetch()}>Retry</Button>}
         />
       </AppLayout>
     )
   }
 
-  // Empty state if no data at all
   if (!hasData) {
     return (
       <AppLayout>
         <SyncStatusBanner />
-        <EmptyState 
-          title="No product data found" 
+        <EmptyState
+          title="No product data found"
           description="We couldn't find any product insights yet. This could be because you haven't connected your store, or your store doesn't have any products with sales data."
           action={<Button onClick={() => refetch()}>Refresh Data</Button>}
         />
@@ -64,98 +71,94 @@ const ProductsPage: React.FC = () => {
     )
   }
 
-  const handleTimeframeChange = (newTimeframe: Timeframe) => {
-    setTimeframe(newTimeframe);
-  }
-
   return (
     <AppLayout>
       <SyncStatusBanner />
       <div className="grid gap-4">
         <ProductsHeader timeframe={timeframe} onTimeframeChange={handleTimeframeChange} />
-        
+
         {/* Top Selling Variants */}
-        {loadingStates.topSelling ? (
+        {status.variantSales === "pending" ? (
           <Card>
             <CardContent className="p-6 flex justify-center items-center h-[300px]">
               <LoadingState message="Loading top selling variants..." />
             </CardContent>
           </Card>
-        ) : errors.topSelling ? (
+        ) : status.variantSales === "error" ? (
           <Card>
             <CardContent className="p-6">
-              <ErrorState 
-                title="Failed to load top selling variants" 
-                description={errors.topSelling.message} 
+              <ErrorState
+                title="Failed to load top selling variants"
+                description="An error occurred while fetching top selling variant data."
                 action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
               />
             </CardContent>
           </Card>
         ) : (
-          <VariantSalesChart data={data.topSelling} />
+          <VariantSalesChart data={variantSalesData} />
         )}
-        
+
         {/* Inventory Risks */}
-        {loadingStates.inventoryRisks ? (
+        {status.inventoryRisks === "pending" ? (
           <Card>
             <CardContent className="p-6 flex justify-center items-center h-[300px]">
               <LoadingState message="Loading inventory risk data..." />
             </CardContent>
           </Card>
-        ) : errors.inventoryRisks ? (
+        ) : status.inventoryRisks === "error" ? (
           <Card>
             <CardContent className="p-6">
-              <ErrorState 
-                title="Failed to load inventory risks" 
-                description={errors.inventoryRisks.message} 
+              <ErrorState
+                title="Failed to load inventory risks"
+                description="An error occurred while fetching inventory risk data."
                 action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
               />
             </CardContent>
           </Card>
         ) : (
-          <InventoryRiskTable data={data.inventoryRisks} />
+          <InventoryRiskTable data={inventoryRisksData} />
         )}
-        
+
         {/* Return Rates */}
-        {loadingStates.returnRates ? (
+        {status.returnRates === "pending" ? (
           <Card>
             <CardContent className="p-6 flex justify-center items-center h-[300px]">
               <LoadingState message="Loading return rate data..." />
             </CardContent>
           </Card>
-        ) : errors.returnRates ? (
+        ) : status.returnRates === "error" ? (
           <Card>
             <CardContent className="p-6">
-              <ErrorState 
-                title="Failed to load return rates" 
-                description={errors.returnRates.message} 
+              <ErrorState
+                title="Failed to load return rates"
+                description="An error occurred while fetching return rate data."
                 action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
               />
             </CardContent>
           </Card>
         ) : (
-          <ReturnRateChart data={data.returnRates} />
+          <ReturnRateChart data={returnRatesData} />
         )}
-        
+
         {/* Product Lifecycle */}
-        {loadingStates.lifecycle ? (
+        {status.productLifecycle === "pending" ? (
           <Card>
             <CardContent className="p-6 flex justify-center items-center h-[300px]">
               <LoadingState message="Loading product lifecycle data..." />
             </CardContent>
           </Card>
-        ) : errors.lifecycle ? (
+        ) : status.productLifecycle === "error" ? (
           <Card>
             <CardContent className="p-6">
-              <ErrorState 
-                title="Failed to load product lifecycle" 
-                description={errors.lifecycle.message} 
+              <ErrorState
+                title="Failed to load product lifecycle"
+                description="An error occurred while fetching lifecycle insights."
                 action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
               />
             </CardContent>
           </Card>
         ) : (
-          <ProductLifecycleChart data={data.lifecycle} />
+          <ProductLifecycleChart data={productLifecycleData} />
         )}
       </div>
     </AppLayout>

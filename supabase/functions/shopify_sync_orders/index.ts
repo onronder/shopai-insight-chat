@@ -1,10 +1,8 @@
-// File: supabase/functions/shopify_sync_orders/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
@@ -12,10 +10,10 @@ const supabase = createClient(
 );
 
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
+const context = "shopify_sync_orders";
 
 serve(async () => {
   const startTime = performance.now();
-  const context = "shopify_sync_orders";
 
   try {
     logInfo(context, "Sync started");
@@ -35,21 +33,21 @@ serve(async () => {
 
       await supabase.from("stores").update({
         sync_status: "syncing",
-        sync_started_at: now,
+        sync_started_at: now
       }).eq("id", store.id);
 
       try {
         const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=250`;
         const headers = {
           "X-Shopify-Access-Token": store.access_token,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         };
 
         let pageUrl: string | null = baseUrl;
         let synced = 0;
 
         while (pageUrl) {
-          const res = await fetch(pageUrl, { headers });
+          const res: Response = await fetch(pageUrl, { headers });
           if (!res.ok) {
             const errorText = await res.text();
             throw new Error(`Shopify fetch failed: ${errorText}`);
@@ -73,11 +71,11 @@ serve(async () => {
               billing_address,
               shipping_address,
               customer,
-              line_items,
+              line_items
             } = order;
 
             let customer_id = null;
-            if (customer && customer.id) {
+            if (customer?.id) {
               const { data: customerRecord, error: customerError } = await supabase
                 .from("shopify_customers")
                 .upsert({
@@ -90,12 +88,12 @@ serve(async () => {
                   total_spent: parseFloat(customer.total_spent ?? 0),
                   orders_count: customer.orders_count || 0,
                   last_order_at: customer.last_order_created_at || null,
-                  store_id: store.id,
+                  store_id: store.id
                 })
                 .select("id")
                 .single();
 
-              if (!customerError) customer_id = customerRecord.id;
+              if (!customerError) customer_id = customerRecord?.id;
             }
 
             const { data: orderRecord, error: orderError } = await supabase
@@ -120,14 +118,13 @@ serve(async () => {
                 created_at: created_at ? new Date(created_at) : null,
                 processed_at: processed_at ? new Date(processed_at) : null,
                 shopify_updated_at: updated_at ? new Date(updated_at) : null,
-                shopify_synced_at: new Date(),
+                shopify_synced_at: new Date()
               })
               .select("id")
               .single();
 
             if (!orderError && orderRecord) {
               const order_id = orderRecord.id;
-
               for (const item of line_items) {
                 await supabase.from("shopify_order_line_items").upsert({
                   store_id: store.id,
@@ -138,53 +135,59 @@ serve(async () => {
                   sku: item.sku || null,
                   quantity: item.quantity,
                   price: parseFloat(item.price),
-                  discount: item.total_discount ?? 0,
+                  discount: item.total_discount ?? 0
                 });
               }
-
               synced++;
             }
           }
 
-          const link = res.headers.get("link");
-          const nextUrl = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-          pageUrl = nextUrl || null;
+          const linkHeader: string | null = res.headers.get("link");
+          const nextUrlMatch = linkHeader?.match(/<([^>]+)>;\s*rel=next/);
+          pageUrl = nextUrlMatch?.[1] ?? null;
         }
 
         await supabase.from("stores").update({
           sync_status: "completed",
-          sync_finished_at: new Date().toISOString(),
+          sync_finished_at: new Date().toISOString()
         }).eq("id", store.id);
 
         logInfo(context, "Store sync completed", {
           store: store.domain,
-          orders_synced: synced,
+          orders_synced: synced
         });
       } catch (syncError) {
-        logError(context, "Sync failed for store", { error: syncError, store: store.domain });
+        const message = syncError instanceof Error ? syncError.message : String(syncError);
+
+        logError(context, "Sync failed for store", {
+          error: message,
+          store: store.domain
+        });
 
         await supabase.from("stores").update({
           sync_status: "failed",
-          sync_finished_at: new Date().toISOString(),
+          sync_finished_at: new Date().toISOString()
         }).eq("id", store.id);
 
         await supabase.from("sync_errors").insert({
           store_id: store.id,
-          source: "orders",
-          error: syncError.message || "Unknown error",
+          function: context,
+          error: message,
+          phase: "sync"
         });
       }
     }
 
-    logInfo(context, "Full sync completed", {
-      duration_ms: performance.now() - startTime,
+    logInfo(context, "Full order sync completed", {
+      duration_ms: performance.now() - startTime
     });
 
     return addSecurityHeaders(
       new Response("Shopify order sync completed", { status: 200 })
     );
   } catch (err) {
-    logError(context, err);
-    return addSecurityHeaders(returnJsonError(500, "Sync failed"));
+    const message = err instanceof Error ? err.message : String(err);
+    logError(context, message);
+    return addSecurityHeaders(returnJsonError(500, "Order sync failed"));
   }
 });

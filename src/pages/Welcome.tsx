@@ -1,3 +1,5 @@
+// File: src/pages/Welcome.tsx
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -11,7 +13,7 @@ import { SampleQuestions } from "@/components/welcome/SampleQuestions";
 import { WelcomeHeader } from "@/components/welcome/WelcomeHeader";
 import { NavigationButtons } from "@/components/welcome/NavigationButtons";
 import { useStoreSyncStatus } from "@/hooks/useStoreSyncStatus";
-import { supabase } from "@/integrations/supabase/client";
+import { secureFetch } from "@/lib/secure-fetch";
 import { ROUTES } from "@/utils/constants";
 
 interface StoreContext {
@@ -24,19 +26,15 @@ const Welcome: React.FC = () => {
   const { toast } = useToast();
   const [storeContext, setStoreContext] = useState<StoreContext | null>(null);
   const [loadingStoreInfo, setLoadingStoreInfo] = useState(true);
+  const [syncComplete, setSyncComplete] = useState(false);
 
   const {
     syncStatus,
     syncStartedAt,
     syncFinishedAt,
-    updatedAt,
     isLoading: syncLoading,
-    isError,
-    error,
     refetch,
   } = useStoreSyncStatus();
-
-  const [syncComplete, setSyncComplete] = useState(false);
 
   const isFullySynced =
     syncStatus === "completed" ||
@@ -49,12 +47,9 @@ const Welcome: React.FC = () => {
   })();
 
   const computedStatus: SyncStatusType = {
-    orders:
-      syncProgress === 100 ? "completed" : syncProgress >= 10 ? "syncing" : "pending",
-    products:
-      syncProgress === 100 ? "completed" : syncProgress >= 30 ? "syncing" : "pending",
-    customers:
-      syncProgress === 100 ? "completed" : syncProgress >= 70 ? "syncing" : "pending",
+    orders: syncProgress === 100 ? "completed" : syncProgress >= 10 ? "syncing" : "pending",
+    products: syncProgress === 100 ? "completed" : syncProgress >= 30 ? "syncing" : "pending",
+    customers: syncProgress === 100 ? "completed" : syncProgress >= 70 ? "syncing" : "pending",
   };
 
   useEffect(() => {
@@ -65,50 +60,37 @@ const Welcome: React.FC = () => {
         description: "Your store data has been successfully imported",
       });
     }
-  }, [isFullySynced]);
+  }, [isFullySynced, syncComplete, toast]);
 
   useEffect(() => {
     const fetchStoreMeta = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const storeId = sessionData.session?.user?.id;
+      try {
+        const res = await secureFetch("/rest/v1/stores/meta");
+        const json = await res.json();
 
-      if (!storeId) {
+        if (!json || json.disconnected_at) {
+          toast({
+            title: "Store Disconnected",
+            description: "This store has been disconnected. Please reconnect.",
+            variant: "destructive",
+          });
+          navigate("/shopify-login");
+          return;
+        }
+
+        const domain = json.shop_domain;
+        const shopName = domain?.split(".")[0] || "Your Store";
+
+        setStoreContext({ shopDomain: domain, shopName });
         setLoadingStoreInfo(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("stores")
-        .select("shop_domain, disconnected_at")
-        .eq("id", storeId)
-        .maybeSingle();
-
-      if (error || !data) {
+      } catch (err) {
+        console.error("Failed to fetch store metadata", err);
         setLoadingStoreInfo(false);
-        return;
       }
-
-      // ✅ Guard: redirect if disconnected
-      if (data.disconnected_at) {
-        toast({
-          title: "Store Disconnected",
-          description: "This store has been disconnected. Please reconnect.",
-          variant: "destructive",
-        });
-
-        navigate("/shopify-login");
-        return;
-      }
-
-      const domain = data.shop_domain;
-      const shopName = domain?.split(".")[0] || "Your Store";
-
-      setStoreContext({ shopDomain: domain, shopName });
-      setLoadingStoreInfo(false);
     };
 
     fetchStoreMeta();
-  }, []);
+  }, [navigate, toast]);
 
   const goToDashboard = () => {
     localStorage.setItem("onboardingCompleted", "true");

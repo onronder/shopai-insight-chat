@@ -1,20 +1,41 @@
-
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
+import {
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip
+} from "recharts";
 
 interface ProductVolumeChartProps {
   data: Array<{ name: string; units: number; revenue: number }>;
 }
 
 export const ProductVolumeChart: React.FC<ProductVolumeChartProps> = ({ data }) => {
+  const [activeMetric, setActiveMetric] = useState<"units" | "revenue">("units");
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Top Selling Products</CardTitle>
-        <CardDescription>Best performing products by units sold and revenue</CardDescription>
-        <Tabs defaultValue="units">
+        <CardDescription>
+          Best performing products by units sold and revenue
+        </CardDescription>
+        <Tabs defaultValue="units" onValueChange={(v) => setActiveMetric(v as "units" | "revenue")}>
           <TabsList>
             <TabsTrigger value="units">By Units</TabsTrigger>
             <TabsTrigger value="revenue">By Revenue</TabsTrigger>
@@ -31,9 +52,9 @@ export const ProductVolumeChart: React.FC<ProductVolumeChartProps> = ({ data }) 
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
-              <YAxis 
-                dataKey="name" 
-                type="category" 
+              <YAxis
+                dataKey="name"
+                type="category"
                 tick={{ fontSize: 12 }}
                 width={140}
               />
@@ -44,7 +65,11 @@ export const ProductVolumeChart: React.FC<ProductVolumeChartProps> = ({ data }) 
                   return [value, name];
                 }}
               />
-              <Bar dataKey="units" fill="#8884d8" name="units" />
+              <Bar
+                dataKey={activeMetric}
+                fill={activeMetric === "units" ? "#3B82F6" : "#10B981"}
+                name={activeMetric === "units" ? "Units Sold" : "Revenue"}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

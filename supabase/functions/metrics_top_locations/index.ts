@@ -1,16 +1,19 @@
+// File: supabase/functions/metrics_top_locations/index.ts
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { verifyJWT } from "../_shared/jwt.ts";
 import { checkRateLimit, addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
+// Initialize Supabase client
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
 );
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   const startTime = performance.now();
   const path = new URL(req.url).pathname;
 
@@ -21,6 +24,7 @@ serve(async (req) => {
     const token = authHeader?.replace("Bearer ", "");
     let store_id: string | null = null;
 
+    // Try Supabase session-based authentication
     try {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user?.id) store_id = user.id;
@@ -28,6 +32,7 @@ serve(async (req) => {
       store_id = null;
     }
 
+    // Fallback to JWT
     if (!store_id && token) {
       const verified = await verifyJWT(token);
       if (verified?.sub) store_id = verified.sub;
@@ -68,7 +73,7 @@ serve(async (req) => {
       }
     }));
   } catch (err) {
-    logError("metrics_top_locations", err, { path });
+    logError("metrics_top_locations", err instanceof Error ? err : new Error("Unknown error"), { path });
     return addSecurityHeaders(returnJsonError(500, "Internal Server Error"));
   }
 });

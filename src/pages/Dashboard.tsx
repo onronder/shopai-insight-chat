@@ -1,16 +1,21 @@
-import React from "react"
-import { AppLayout } from "@/components/layout/AppLayout"
-import { useDashboardData } from "@/hooks/useDashboardData"
-import { LoadingState } from "@/components/common/LoadingState"
-import { ErrorState } from "@/components/ui/ErrorState"
-import { DashboardStatsCards } from "@/components/dashboard/DashboardStatsCards"
-import { SalesOverTimeChart } from "@/components/dashboard/SalesOverTimeChart"
-import { TopProductsChart } from "@/components/dashboard/TopProductsChart"
-import { CustomerAcquisitionChart } from "@/components/dashboard/CustomerAcquisitionChart"
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
-import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
+// File: src/pages/Dashboard.tsx
+
+import React from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { LoadingState } from "@/components/common/LoadingState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { DashboardStatsCards } from "@/components/dashboard/DashboardStatsCards";
+import { SalesOverTimeChart } from "@/components/dashboard/SalesOverTimeChart";
+import { TopProductsChart } from "@/components/dashboard/TopProductsChart";
+import { CustomerAcquisitionChart } from "@/components/dashboard/CustomerAcquisitionChart";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner";
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard";
 
 const Dashboard: React.FC = () => {
+  useStoreAccessGuard();
+
   const {
     stats,
     sales,
@@ -19,7 +24,7 @@ const Dashboard: React.FC = () => {
     activity,
     isLoading,
     error,
-  } = useDashboardData()
+  } = useDashboardData();
 
   if (isLoading) {
     return (
@@ -27,16 +32,19 @@ const Dashboard: React.FC = () => {
         <SyncStatusBanner />
         <LoadingState message="Loading dashboard..." />
       </AppLayout>
-    )
+    );
   }
 
   if (error) {
     return (
       <AppLayout>
         <SyncStatusBanner />
-        <ErrorState title="Failed to load dashboard data" description={error.message} />
+        <ErrorState
+          title="Failed to load dashboard data"
+          description={error.message}
+        />
       </AppLayout>
-    )
+    );
   }
 
   return (
@@ -54,7 +62,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
     </AppLayout>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

@@ -1,17 +1,15 @@
-// File: supabase/functions/cron_delta_sync.ts
+// File: supabase/functions/cron_delta_sync/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
   Deno.env.get("PROJECT_SUPABASE_URL")!,
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
 );
-
-const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
 
 serve(async () => {
   const startTime = performance.now();
@@ -36,7 +34,7 @@ serve(async () => {
         const nowInStoreTz = new Date(now.toLocaleString("en-US", { timeZone: storeTz }));
 
         if (!(nowInStoreTz.getHours() === 0 && nowInStoreTz.getMinutes() === 30)) {
-          continue; // Skip this store — not 00:30 in their time zone
+          continue;
         }
 
         logInfo(context, "Triggering delta sync for store", {
@@ -50,17 +48,16 @@ serve(async () => {
           sync_started_at: new Date().toISOString()
         }).eq("id", store.id);
 
-        // === TRIGGER DELTA SYNC FUNCTIONS ===
         const functionUrls = [
-          `/functions/v1/shopify_delta_orders`,
-          `/functions/v1/shopify_delta_products`
+          "/functions/v1/shopify_delta_orders",
+          "/functions/v1/shopify_delta_products"
         ];
 
         for (const fn of functionUrls) {
           const res = await fetch(`${Deno.env.get("PROJECT_SUPABASE_URL")}${fn}`, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${Deno.env.get("AUTOMATION_TOKEN")}`,
+              Authorization: `Bearer ${Deno.env.get("PROJECT_AUTOMATION_TOKEN")}`,
               "Content-Type": "application/json"
             },
             body: JSON.stringify({ store_id: store.id })
@@ -68,7 +65,10 @@ serve(async () => {
 
           if (!res.ok) {
             const errText = await res.text();
-            logError(context, `Delta function failed: ${fn}`, { store: store.domain, error: errText });
+            logError(context, `Delta function failed: ${fn}`, {
+              store: store.domain,
+              error: errText
+            });
 
             await supabase.from("sync_errors").insert({
               store_id: store.id,
@@ -85,14 +85,18 @@ serve(async () => {
           sync_finished_at: new Date().toISOString()
         }).eq("id", store.id);
 
-      } catch (storeErr) {
-        logError(context, "Store delta sync error", { store: store.domain, error: storeErr });
+      } catch (storeErr: unknown) {
+        const message = storeErr instanceof Error ? storeErr.message : "Unknown error";
+        const stack = storeErr instanceof Error ? storeErr.stack : null;
+
+        logError(context, "Store delta sync error", { store: store.domain, error: message });
+
         await supabase.from("sync_errors").insert({
           store_id: store.id,
           type: "cron_delta",
           context: "global",
-          message: storeErr.message || "Unknown error",
-          payload: { stack: storeErr.stack }
+          message,
+          payload: { stack }
         });
       }
     }
@@ -104,8 +108,9 @@ serve(async () => {
     return addSecurityHeaders(
       new Response("Cron delta sync completed", { status: 200 })
     );
-  } catch (err) {
-    logError(context, err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    logError(context, message);
     return addSecurityHeaders(returnJsonError(500, "Cron delta sync failed"));
   }
 });

@@ -1,3 +1,4 @@
+// File: src/pages/AssistantPage.tsx
 
 import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -23,7 +24,7 @@ const AssistantPage: React.FC = () => {
     handleSendMessage,
     handleSelectConversation,
     handleSelectSuggestion,
-    refetchConversations
+    refetchConversations,
   } = useConversations();
 
   if (loading) {
@@ -79,12 +80,11 @@ const AssistantPage: React.FC = () => {
             onSelectConversation={handleSelectConversation}
             onNewConversation={handleNewConversation}
           />
-
           <div className="flex-1 flex flex-col border rounded-xl overflow-hidden bg-card">
             {activeConversation ? (
               <>
                 <ConversationHeader conversation={activeConversation} />
-                <MessageDisplay 
+                <MessageDisplay
                   messages={activeConversation.messages}
                   onSelectSuggestion={handleSelectSuggestion}
                 />

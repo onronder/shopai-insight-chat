@@ -1,17 +1,22 @@
-import React from "react"
-import { AppLayout } from "@/components/layout/AppLayout"
-import { useCustomersData } from "@/hooks/useCustomersData"
-import { LoadingState } from "@/components/common/LoadingState"
-import { ErrorState } from "@/components/ui/ErrorState"
-import { CustomerSegmentsTable } from "@/components/customers/CustomerSegmentsTable"
-import { LtvDistributionChart } from "@/components/customers/LtvDistributionChart"
-import { ChurnForecastChart } from "@/components/customers/ChurnForecastChart"
-import { BestCustomers } from "@/components/customers/BestCustomers"
-import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
-import { Button } from "@/components/ui/button"
-import { AlertCircle } from "lucide-react"
+// File: src/pages/CustomersPage.tsx
+
+import React from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useCustomersData } from "@/hooks/useCustomersData";
+import { LoadingState } from "@/components/common/LoadingState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { CustomerSegmentsTable } from "@/components/customers/CustomerSegmentsTable";
+import { LtvDistributionChart } from "@/components/customers/LtvDistributionChart";
+import { ChurnForecastChart } from "@/components/customers/ChurnForecastChart";
+import { BestCustomers } from "@/components/customers/BestCustomers";
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard";
 
 const CustomersPage: React.FC = () => {
+  useStoreAccessGuard();
+
   const {
     isLoading,
     error,
@@ -19,9 +24,9 @@ const CustomersPage: React.FC = () => {
     ltvDistributionData,
     churnCandidatesData,
     repeatCustomersData,
-  } = useCustomersData()
+  } = useCustomersData();
 
-  const handleRetry = () => location.reload()
+  const handleRetry = () => location.reload();
 
   if (isLoading) {
     return (
@@ -29,7 +34,7 @@ const CustomersPage: React.FC = () => {
         <SyncStatusBanner />
         <LoadingState message="Loading customer data..." />
       </AppLayout>
-    )
+    );
   }
 
   if (error) {
@@ -42,14 +47,11 @@ const CustomersPage: React.FC = () => {
           action={<Button onClick={handleRetry}>Retry</Button>}
         />
       </AppLayout>
-    )
+    );
   }
 
   const hasNoData =
-    (!segmentsData || segmentsData.length === 0) &&
-    (!ltvDistributionData || ltvDistributionData.length === 0) &&
-    (!churnCandidatesData || churnCandidatesData.length === 0) &&
-    (!repeatCustomersData || repeatCustomersData.length === 0)
+    (!segmentsData?.length && !ltvDistributionData?.length && !churnCandidatesData?.length && !repeatCustomersData?.length);
 
   if (hasNoData) {
     return (
@@ -65,7 +67,7 @@ const CustomersPage: React.FC = () => {
           <Button onClick={handleRetry}>Refresh Data</Button>
         </div>
       </AppLayout>
-    )
+    );
   }
 
   return (
@@ -82,7 +84,7 @@ const CustomersPage: React.FC = () => {
         <BestCustomers data={repeatCustomersData} />
       </div>
     </AppLayout>
-  )
-}
+  );
+};
 
-export default CustomersPage
+export default CustomersPage;

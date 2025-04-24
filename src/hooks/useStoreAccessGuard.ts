@@ -1,41 +1,41 @@
+// File: src/hooks/useStoreAccessGuard.ts
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { secureFetch } from "@/lib/secure-fetch";
 
-/**
- * Redirects to /shopify-login if store is marked as disconnected in DB
- */
 export function useStoreAccessGuard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const checkDisconnected = async () => {
-      const session = await supabase.auth.getSession();
-      const storeId = session.data.session?.user?.id;
-
-      if (!storeId) return;
-
-      const { data, error } = await supabase
-        .from("stores")
-        .select("disconnected_at")
-        .eq("id", storeId)
-        .maybeSingle();
-
-      if (error) return;
-
-      if (data?.disconnected_at) {
-        toast({
-          title: "Store Disconnected",
-          description: "Please reconnect your Shopify store to continue.",
-          variant: "destructive",
+      try {
+        const response = await secureFetch("/rest/v1/stores?select=disconnected_at", {
+          method: "GET",
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
+          },
         });
 
-        navigate("/shopify-login");
+        const rows = await response.json();
+        const store = Array.isArray(rows) ? rows[0] : null;
+
+        if (store?.disconnected_at) {
+          toast({
+            title: "Store Disconnected",
+            description: "Please reconnect your Shopify store to continue.",
+            variant: "destructive",
+          });
+          navigate("/shopify-login");
+        }
+      } catch (err) {
+        console.error("🔐 Failed to check store access:", err);
+        // You can optionally show a toast here if needed
       }
     };
 
     checkDisconnected();
-  }, []);
+  }, [navigate, toast]);
 }
