@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
+import { verifyShopifyHMAC } from "../_shared/verifyHMAC.ts";
 import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
@@ -12,32 +13,7 @@ const supabase = createClient(
 );
 
 const SHOPIFY_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
-const context = "shopify_webhook_customers_update";
-
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(b.length === a.length ? i : 0);
-  }
-  return result === 0;
-}
-
-async function verifyShopifyWebhook(req: Request, rawBody: string): Promise<boolean> {
-  const receivedHmac = req.headers.get("x-shopify-hmac-sha256") || "";
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(SHOPIFY_SECRET);
-  const key = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody));
-  const expectedHmac = btoa(String.fromCharCode(...new Uint8Array(signature)));
-  return constantTimeEqual(receivedHmac, expectedHmac);
-}
+const CONTEXT = "shopify_webhook_customers_update";
 
 serve(async (req) => {
   const start = performance.now();
@@ -45,18 +21,25 @@ serve(async (req) => {
 
   try {
     const rawBody = await req.text();
-    if (!(await verifyShopifyWebhook(req, rawBody))) {
-      logError(context, "Invalid HMAC signature", { path });
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256") || "";
+
+    const isValid = await verifyShopifyHMAC(rawBody, hmacHeader, SHOPIFY_SECRET);
+    if (!isValid) {
+      logError(CONTEXT, "HMAC verification failed", {
+        path,
+        shop: req.headers.get("x-shopify-shop-domain") || "unknown",
+        ip: req.headers.get("CF-Connecting-IP") || "unknown"
+      });
       return addSecurityHeaders(returnJsonError(401, "Unauthorized"));
     }
 
     const payload = JSON.parse(rawBody);
     const shopifyDomain = req.headers.get("x-shopify-shop-domain") || "";
 
-    logInfo(context, "Received webhook", {
+    logInfo(CONTEXT, "Webhook received", {
       path,
       shopifyDomain,
-      customer_id: payload.id,
+      customer_id: payload.id
     });
 
     if (!payload.id) {
@@ -70,7 +53,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
-      logError(context, storeError || "Store not found", { shopifyDomain });
+      logError(CONTEXT, storeError || "Store not found", { shopifyDomain });
       return returnJsonError(404, "Store not found");
     }
 
@@ -95,9 +78,9 @@ serve(async (req) => {
       .eq("store_id", store.id);
 
     if (updateError) {
-      logError(context, updateError, {
+      logError(CONTEXT, updateError, {
         store_id: store.id,
-        shopify_customer_id: payload.id,
+        shopify_customer_id: payload.id
       });
       return returnJsonError(500, "Failed to update customer");
     }
@@ -106,20 +89,22 @@ serve(async (req) => {
       store_id: store.id,
       topic: "customers/update",
       shopify_customer_id: payload.id.toString(),
-      payload,
+      payload
     });
 
-    logInfo(context, "Customer updated", {
+    logInfo(CONTEXT, "Customer updated", {
       store_id: store.id,
-      shopify_customer_id: payload.id,
+      shopify_customer_id: payload.id
     });
 
-    const duration = performance.now() - start;
-    logInfo(context, "Completed", { duration });
+    logInfo(CONTEXT, "Completed", {
+      path,
+      duration_ms: performance.now() - start
+    });
 
     return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    logError(context, err, { path });
+    logError(CONTEXT, err, { path });
     return returnJsonError(500, "Webhook Error");
   }
 });

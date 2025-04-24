@@ -1,9 +1,10 @@
-// File: shopify_webhook_products_update/index.ts
+// File: supabase/functions/shopify_webhook_products_update/index.ts
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logError, logInfo } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
+import { verifyShopifyHMAC } from "../_shared/verifyHMAC.ts";
 import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
@@ -11,21 +12,34 @@ const supabase = createClient(
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
 );
 
-const context = "shopify_webhook_products_update";
+const SHOPIFY_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
+const CONTEXT = "shopify_webhook_products_update";
 
 serve(async (req) => {
   const path = new URL(req.url).pathname;
   const start = performance.now();
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256") || "";
     const shopifyDomain = req.headers.get("x-shopify-shop-domain")?.trim();
 
-    if (!payload?.id || !shopifyDomain) {
-      return returnJsonError(400, "Missing product ID or shop domain");
+    // 🔒 HMAC verification
+    const isValid = await verifyShopifyHMAC(rawBody, hmacHeader, SHOPIFY_SECRET);
+    if (!isValid) {
+      logError(CONTEXT, "HMAC verification failed", {
+        shop: shopifyDomain,
+        ip: req.headers.get("cf-connecting-ip") || "unknown",
+      });
+      return returnJsonError(401, "Unauthorized");
     }
 
-    const shopify_product_id = payload.id.toString();
+    const payload = JSON.parse(rawBody);
+    const shopify_product_id = payload?.id?.toString();
+
+    if (!shopify_product_id || !shopifyDomain) {
+      return returnJsonError(400, "Missing product ID or shop domain");
+    }
 
     const { data: store, error: storeError } = await supabase
       .from("shopify_stores")
@@ -34,11 +48,12 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
-      logError(context, "Store not found", { shopifyDomain });
+      logError(CONTEXT, "Store not found", { shopifyDomain });
       return returnJsonError(404, "Store not found");
     }
 
     const store_id = store.id;
+    const now = new Date().toISOString();
 
     // ✅ Update product
     const updateFields = {
@@ -50,8 +65,8 @@ serve(async (req) => {
         : typeof payload.tags === "string"
         ? payload.tags
         : null,
-      shopify_synced_at: new Date().toISOString(),
-      is_deleted: false
+      shopify_synced_at: now,
+      is_deleted: false,
     };
 
     const { data: product, error: updateError } = await supabase
@@ -63,16 +78,18 @@ serve(async (req) => {
       .single();
 
     if (updateError || !product) {
-      logError(context, "Product update failed", {
+      logError(CONTEXT, "Product update failed", {
         shopify_product_id,
         store_id,
-        error: updateError?.message
+        error: updateError?.message,
       });
       return returnJsonError(500, "Failed to update product");
     }
 
     // ✅ Upsert variants
     for (const v of payload.variants || []) {
+      if (!v.id) continue;
+
       const { error: variantError } = await supabase
         .from("shopify_product_variants")
         .upsert({
@@ -83,15 +100,15 @@ serve(async (req) => {
           inventory_quantity: v.inventory_quantity ?? null,
           product_id: product.id,
           store_id,
-          shopify_synced_at: new Date().toISOString(),
-          is_deleted: false
+          shopify_synced_at: now,
+          is_deleted: false,
         });
 
       if (variantError) {
-        logError(context, "Variant update failed", {
+        logError(CONTEXT, "Variant upsert failed", {
           variant_id: v.id,
           store_id,
-          error: variantError.message
+          error: variantError.message,
         });
       }
     }
@@ -101,22 +118,22 @@ serve(async (req) => {
       store_id,
       topic: "products/update",
       shopify_product_id,
-      payload
+      payload,
     });
 
-    logInfo(context, "Product + variants updated", {
+    logInfo(CONTEXT, "Product + variants updated", {
       shopify_product_id,
-      store_id
+      store_id,
     });
 
-    logInfo(context, "Request complete", {
+    logInfo(CONTEXT, "Request complete", {
       duration_ms: performance.now() - start,
-      path
+      path,
     });
 
     return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    logError(context, err, { path });
+    logError(CONTEXT, err, { path });
     return returnJsonError(500, "Webhook Error");
   }
 });

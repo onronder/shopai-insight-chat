@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
+import { verifyShopifyHMAC } from "../_shared/verifyHMAC.ts";
 import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
@@ -11,21 +12,30 @@ const supabase = createClient(
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
 );
 
-const context = "shopify_webhook_orders_delete";
+const SHOPIFY_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
+const CONTEXT = "shopify_webhook_orders_delete";
 
 serve(async (req) => {
   const start = performance.now();
   const path = new URL(req.url).pathname;
 
   try {
-    // NOTE: If you want to add Shopify HMAC verification, scaffold is here
-
     const rawBody = await req.text();
-    const payload = JSON.parse(rawBody);
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256") || "";
     const shopifyDomain = req.headers.get("x-shopify-shop-domain") || "";
 
+    const isValid = await verifyShopifyHMAC(rawBody, hmacHeader, SHOPIFY_SECRET);
+    if (!isValid) {
+      logError(CONTEXT, "HMAC verification failed", {
+        shop: shopifyDomain,
+        ip: req.headers.get("CF-Connecting-IP") || "unknown"
+      });
+      return addSecurityHeaders(returnJsonError(401, "Unauthorized"));
+    }
+
+    const payload = JSON.parse(rawBody);
     if (!payload?.id) {
-      logError(context, "Missing order ID", { shopifyDomain });
+      logError(CONTEXT, "Missing order ID", { shopifyDomain });
       return returnJsonError(400, "Missing order ID");
     }
 
@@ -36,7 +46,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
-      logError(context, "Store not found", { shopifyDomain });
+      logError(CONTEXT, "Store not found", { shopifyDomain });
       return returnJsonError(404, "Store not found");
     }
 
@@ -49,7 +59,7 @@ serve(async (req) => {
       .eq("store_id", store.id);
 
     if (softDeleteError) {
-      logError(context, "Order soft delete failed", {
+      logError(CONTEXT, "Order soft delete failed", {
         store_id: store.id,
         shopify_order_id,
         error: softDeleteError.message,
@@ -65,24 +75,24 @@ serve(async (req) => {
     });
 
     if (logErrorInsert) {
-      logError(context, "Webhook log failed", {
+      logError(CONTEXT, "Webhook log failed", {
         store_id: store.id,
         shopify_order_id,
         error: logErrorInsert.message,
       });
     }
 
-    logInfo(context, "Order marked as deleted", {
+    logInfo(CONTEXT, "Order marked as deleted", {
       store_id: store.id,
       shopify_order_id,
     });
 
     const duration = performance.now() - start;
-    logInfo(context, "Webhook processed", { path, duration_ms: duration });
+    logInfo(CONTEXT, "Webhook processed", { path, duration_ms: duration });
 
     return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    logError(context, err, { path });
+    logError(CONTEXT, err, { path });
     return returnJsonError(500, "Unexpected error during webhook processing");
   }
 });

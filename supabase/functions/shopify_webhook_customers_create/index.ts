@@ -1,25 +1,49 @@
+// File: supabase/functions/shopify_webhook_customers_create/index.ts
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import "https://deno.land/x/dotenv/load.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
 import { logInfo, logError } from "../_shared/logging.ts";
+import { verifyShopifyHMAC } from "../_shared/verifyHMAC.ts";
+
+const CONTEXT = "shopify_webhook_customers_create";
+const SHOPIFY_API_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
+const supabase = createClient(
+  Deno.env.get("PROJECT_SUPABASE_URL")!,
+  Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
+);
 
 serve(async (req) => {
   const startTime = performance.now();
   const path = new URL(req.url).pathname;
 
   try {
-    logInfo("shopify_webhook_customers_create", "Webhook received", { path });
+    logInfo(CONTEXT, "Webhook received", { path });
 
-    const payload = await req.json();
+    const rawBody = await req.text();
+    const hmacHeader = req.headers.get("X-Shopify-Hmac-Sha256") || "";
     const shopifyDomain = req.headers.get("x-shopify-shop-domain") || "";
 
-    const supabase = createClient(
-      Deno.env.get("PROJECT_SUPABASE_URL")!,
-      Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
-    );
+    // HMAC Validation
+    const isDev = Deno.env.get("ENV") === "dev";
+    if (!isDev) {
+      const isValid = await verifyShopifyHMAC(rawBody, hmacHeader, SHOPIFY_API_SECRET);
+      if (!isValid) {
+        logError(CONTEXT, "HMAC verification failed", {
+          shop: shopifyDomain,
+          ip: req.headers.get("CF-Connecting-IP") || "unknown",
+        });
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      logInfo(CONTEXT, "Development mode: skipping HMAC verification");
+    }
 
-    // Identify store
+    const payload = JSON.parse(rawBody);
+
     const { data: store, error: storeError } = await supabase
       .from("shopify_stores")
       .select("id")
@@ -27,7 +51,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
-      logError("shopify_webhook_customers_create", storeError || "Store not found", { shopifyDomain });
+      logError(CONTEXT, storeError || "Store not found", { shopifyDomain });
       return addSecurityHeaders(returnJsonError(404, "Store not found"));
     }
 
@@ -40,7 +64,7 @@ serve(async (req) => {
       verified_email: payload.verified_email ?? null,
       store_id: store.id,
       source_updated_at: payload.updated_at ? new Date(payload.updated_at) : null,
-      shopify_synced_at: new Date()
+      shopify_synced_at: new Date(),
     };
 
     const { error: upsertError } = await supabase
@@ -50,11 +74,10 @@ serve(async (req) => {
       .single();
 
     if (upsertError) {
-      logError("shopify_webhook_customers_create", upsertError.message, {
+      logError(CONTEXT, upsertError.message, {
         customer_id: payload.id,
-        store_id: store.id
+        store_id: store.id,
       });
-
       return addSecurityHeaders(returnJsonError(500, "Upsert failed"));
     }
 
@@ -65,17 +88,17 @@ serve(async (req) => {
       payload,
     });
 
-    logInfo("shopify_webhook_customers_create", "Customer created or updated", {
+    logInfo(CONTEXT, "Customer created or updated", {
       store_id: store.id,
-      shopify_customer_id: payload.id?.toString()
+      shopify_customer_id: payload.id?.toString(),
     });
 
     return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    logError("shopify_webhook_customers_create", err, { path });
+    logError(CONTEXT, err, { path });
     return addSecurityHeaders(returnJsonError(500, "Webhook Error"));
   } finally {
     const duration = performance.now() - startTime;
-    logInfo("shopify_webhook_customers_create", "Completed", { path, duration });
+    logInfo(CONTEXT, "Completed", { path, duration });
   }
 });

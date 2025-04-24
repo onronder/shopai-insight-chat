@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logError, logInfo } from "../_shared/logging.ts";
 import { addSecurityHeaders, returnJsonError } from "../_shared/security.ts";
+import { verifyShopifyHMAC } from "../_shared/verifyHMAC.ts";
 import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 
 const supabase = createClient(
@@ -11,18 +12,31 @@ const supabase = createClient(
   Deno.env.get("PROJECT_SERVICE_ROLE_KEY")!
 );
 
-const context = "shopify_webhook_products_create";
+const SHOPIFY_SECRET = Deno.env.get("PROJECT_SHOPIFY_API_SECRET")!;
+const CONTEXT = "shopify_webhook_products_create";
 
 serve(async (req) => {
   const start = performance.now();
   const path = new URL(req.url).pathname;
 
   try {
-    const raw = await req.text();
-    const payload = JSON.parse(raw);
+    const rawBody = await req.text();
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256") || "";
     const shopifyDomain = req.headers.get("x-shopify-shop-domain")?.trim();
 
-    if (!payload?.id || !shopifyDomain) {
+    // Verify HMAC
+    const isValid = await verifyShopifyHMAC(rawBody, hmacHeader, SHOPIFY_SECRET);
+    if (!isValid) {
+      logError(CONTEXT, "HMAC verification failed", {
+        shop: shopifyDomain,
+        ip: req.headers.get("cf-connecting-ip") || "unknown",
+      });
+      return returnJsonError(401, "Unauthorized");
+    }
+
+    const payload = JSON.parse(rawBody);
+    const shopify_product_id = payload?.id?.toString();
+    if (!shopify_product_id || !shopifyDomain) {
       return returnJsonError(400, "Missing required product ID or shop domain");
     }
 
@@ -33,11 +47,10 @@ serve(async (req) => {
       .maybeSingle();
 
     if (storeError || !store) {
-      logError(context, "Store not found", { shopifyDomain });
+      logError(CONTEXT, "Store not found", { shopifyDomain });
       return returnJsonError(404, "Store not found");
     }
 
-    const shopify_product_id = payload.id.toString();
     const now = new Date().toISOString();
 
     const { data: product, error: productError } = await supabase
@@ -55,7 +68,7 @@ serve(async (req) => {
       .single();
 
     if (productError || !product) {
-      logError(context, "Product upsert failed", {
+      logError(CONTEXT, "Product upsert failed", {
         shopify_product_id,
         store_id: store.id,
         error: productError?.message,
@@ -81,7 +94,7 @@ serve(async (req) => {
         .then((res) => res.error);
 
       if (variantError) {
-        logError(context, "Variant upsert failed", {
+        logError(CONTEXT, "Variant upsert failed", {
           variant_id: v.id,
           product_id: product.id,
           error: variantError.message,
@@ -96,17 +109,19 @@ serve(async (req) => {
       payload,
     });
 
-    logInfo(context, "Product and variants synced", {
+    logInfo(CONTEXT, "Product and variants synced", {
       store_id: store.id,
       shopify_product_id,
     });
 
-    const duration = performance.now() - start;
-    logInfo(context, "Request completed", { path, duration_ms: duration });
+    logInfo(CONTEXT, "Request completed", {
+      path,
+      duration_ms: performance.now() - start,
+    });
 
     return addSecurityHeaders(new Response("OK", { status: 200 }));
   } catch (err) {
-    logError(context, err, { path });
+    logError(CONTEXT, err, { path });
     return returnJsonError(500, "Webhook Error");
   }
 });
