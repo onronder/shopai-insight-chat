@@ -1,3 +1,5 @@
+// File: src/pages/ShopifyLogin.tsx
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,8 +7,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { ArrowRight, ShoppingBag, BarChart, Brain, Sparkles, AlertCircle } from "lucide-react";
+import { useShopifyAuthGuard } from "@/hooks/useShopifyAuthGuard"; // ✅ Added this
 
 const ShopifyLogin: React.FC = () => {
+  useShopifyAuthGuard(); // ✅ Protect missing host/shop
+
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedDataUsage, setAcceptedDataUsage] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
@@ -21,9 +26,10 @@ const ShopifyLogin: React.FC = () => {
 
     const searchParams = new URLSearchParams(window.location.search);
     const shop = searchParams.get("shop");
+    const host = searchParams.get("host");
 
-    if (!shop) {
-      console.error("❌ No shop domain found in URL");
+    if (!shop || !host) {
+      console.error("❌ No shop or host found in URL");
       return;
     }
 

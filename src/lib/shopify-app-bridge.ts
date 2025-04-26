@@ -5,13 +5,24 @@ import { getSessionToken } from "@shopify/app-bridge-utils";
 
 /**
  * Initializes Shopify App Bridge securely.
+ * If missing `host`, redirects user into OAuth flow automatically.
  */
 export function initializeShopifyAppBridge() {
   const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY;
-  const host = new URLSearchParams(window.location.search).get("host");
+  const urlParams = new URLSearchParams(window.location.search);
+  const host = urlParams.get("host");
+  const shop = urlParams.get("shop");
 
   if (!apiKey || !host) {
-    console.error("❌ Missing Shopify API Key or Host.");
+    console.warn("⚠️ Missing Shopify API Key or Host. Attempting reauthentication...");
+
+    if (shop) {
+      const baseUrl = window.location.origin;
+      window.location.href = `${baseUrl}/functions/v1/shopify_auth_start?shop=${encodeURIComponent(shop)}`;
+    } else {
+      console.error("❌ Missing shop parameter too. Cannot start reauthentication.");
+    }
+
     return null;
   }
 
