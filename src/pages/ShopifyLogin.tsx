@@ -1,12 +1,10 @@
-// File: src/pages/ShopifyLogin.tsx
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, ShoppingBag, Sparkles, BarChart, Brain, AlertCircle } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Link } from 'react-router-dom';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Link } from "react-router-dom";
+import { ArrowRight, ShoppingBag, BarChart, Brain, Sparkles, AlertCircle } from "lucide-react";
 
 const ShopifyLogin: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -15,21 +13,20 @@ const ShopifyLogin: React.FC = () => {
 
   const isFormValid = acceptedTerms && acceptedDataUsage;
 
-  const handleConnectStore = async () => {
+  const handleConnectStore = () => {
     if (!isFormValid) {
       setAttemptedSubmit(true);
       return;
     }
 
     const searchParams = new URLSearchParams(window.location.search);
-    const shop = searchParams.get('shop');
+    const shop = searchParams.get("shop");
 
     if (!shop) {
-      console.error('❌ No store domain found');
+      console.error("❌ No shop domain found in URL");
       return;
     }
 
-    // ✅ Start OAuth by redirecting to shopify_auth_start
     const baseUrl = window.location.origin;
     window.location.href = `${baseUrl}/functions/v1/shopify_auth_start?shop=${encodeURIComponent(shop)}`;
   };
@@ -45,15 +42,15 @@ const ShopifyLogin: React.FC = () => {
             Welcome to ShopAI Insight
           </CardTitle>
           <CardDescription className="mt-2 text-slate-600 text-base">
-            Connect your Shopify store to access AI-powered analytics and insights
+            Connect your Shopify store to unlock powerful AI insights
           </CardDescription>
         </CardHeader>
 
         <CardContent className="flex flex-col items-center relative z-10">
           <div className="w-full p-6 rounded-lg bg-gradient-to-br from-white to-slate-50 shadow-inner">
             <div className="grid grid-cols-3 gap-4 text-center mb-4">
-              {[{ Icon: BarChart, label: 'Smart Analytics' }, { Icon: Brain, label: 'AI Insights' }, { Icon: Sparkles, label: 'Growth Tools' }].map(({ Icon, label }, i) => (
-                <div key={i} className="flex flex-col items-center">
+              {[{ Icon: BarChart, label: "Smart Analytics" }, { Icon: Brain, label: "AI Insights" }, { Icon: Sparkles, label: "Growth Tools" }].map(({ Icon, label }, index) => (
+                <div key={index} className="flex flex-col items-center">
                   <div className="mb-2 h-10 w-10 rounded-full bg-shopify-primary/10 flex items-center justify-center">
                     <Icon className="h-5 w-5 text-shopify-primary" />
                   </div>
@@ -62,7 +59,7 @@ const ShopifyLogin: React.FC = () => {
               ))}
             </div>
             <p className="text-center text-slate-600 text-sm">
-              Unlock powerful AI analytics tailored specifically for your Shopify store
+              Manage your store smarter with real-time AI insights
             </p>
           </div>
 
@@ -74,15 +71,15 @@ const ShopifyLogin: React.FC = () => {
               </label>
             </div>
             <div className="flex items-start space-x-2">
-              <Checkbox id="data-usage" checked={acceptedDataUsage} onCheckedChange={(v) => setAcceptedDataUsage(v === true)} className="mt-1" />
-              <label htmlFor="data-usage" className="text-sm text-slate-600 leading-tight">
-                I acknowledge that analytics and personal data may be used for insight generation
+              <Checkbox id="dataUsage" checked={acceptedDataUsage} onCheckedChange={(v) => setAcceptedDataUsage(v === true)} className="mt-1" />
+              <label htmlFor="dataUsage" className="text-sm text-slate-600 leading-tight">
+                I agree to the use of store analytics and personal data for insights
               </label>
             </div>
             {attemptedSubmit && !isFormValid && (
               <div className="flex items-center text-amber-600 text-sm mt-2">
                 <AlertCircle className="h-4 w-4 mr-1" />
-                <span>Please accept both terms to continue</span>
+                <span>Please accept both agreements to continue</span>
               </div>
             )}
           </div>
@@ -98,12 +95,12 @@ const ShopifyLogin: React.FC = () => {
                   onClick={handleConnectStore}
                   disabled={!isFormValid}
                 >
-                  Connect your Shopify Store <ArrowRight className="ml-2 h-5 w-5" />
+                  Connect Your Shopify Store <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="bg-amber-50 text-amber-700 border border-amber-200">
-              Please accept both terms to continue
+              Please accept both agreements first
             </TooltipContent>
           </Tooltip>
         </CardFooter>
