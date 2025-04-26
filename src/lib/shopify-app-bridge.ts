@@ -1,11 +1,9 @@
-// File: src/lib/shopify-app-bridge.ts
-
 import createApp, { AppConfigV2 } from "@shopify/app-bridge";
 import { getSessionToken } from "@shopify/app-bridge-utils";
 
 /**
  * Initializes Shopify App Bridge securely.
- * If missing `host`, redirects user into OAuth flow automatically.
+ * If missing `host`, attempts OAuth reauthentication.
  */
 export function initializeShopifyAppBridge() {
   const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY;

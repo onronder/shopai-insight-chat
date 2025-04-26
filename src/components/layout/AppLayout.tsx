@@ -1,6 +1,4 @@
-// File: src/components/layout/AppLayout.tsx
-
-import React from "react";
+import React, { useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { ThemeProvider } from "./ThemeProvider";
@@ -8,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { SyncStatusBanner } from "../common/SyncStatusBanner";
 import { BillingReminderBanner } from "../billing/BillingReminderBanner";
 import { Link } from "react-router-dom";
+import { initializeShopifyAppBridge } from "@/lib/shopify-app-bridge"; // ✅ ADD THIS
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -18,6 +17,10 @@ interface AppLayoutProps {
  * Provides consistent structure with header, sidebar, and content area
  */
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+  useEffect(() => {
+    initializeShopifyAppBridge(); // ✅ Initialize when layout mounts
+  }, []);
+
   return (
     <ThemeProvider>
       <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-background font-sans">
