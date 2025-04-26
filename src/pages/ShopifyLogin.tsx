@@ -1,67 +1,19 @@
 // File: src/pages/ShopifyLogin.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ShoppingBag, Sparkles, BarChart, Brain, AlertCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyLogin: React.FC = () => {
-  const navigate = useNavigate();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedDataUsage, setAcceptedDataUsage] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
-  const [storeDomain, setStoreDomain] = useState<string | null>(null);
 
   const isFormValid = acceptedTerms && acceptedDataUsage;
-
-  useEffect(() => {
-    const checkSessionAndStore = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const storeId = sessionData.session?.user?.id;
-
-      if (!storeId) return;
-
-      const { data: store, error } = await supabase
-        .from('stores')
-        .select('shop_domain, sync_status')
-        .eq('id', storeId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('❌ Failed to fetch store info', error);
-        return;
-      }
-
-      if (store?.sync_status === 'completed') {
-        navigate('/dashboard');
-      } else if (store?.shop_domain) {
-        setStoreDomain(store.shop_domain);
-      }
-    };
-
-    checkSessionAndStore();
-  }, [navigate]);
-
-  async function logConsent() {
-    if (!storeDomain) return;
-
-    const { error } = await supabase.from('user_consent_logs').insert({
-      store_domain: storeDomain,
-      accepted_terms: true,
-      accepted_privacy: true,
-      accepted_data_usage: true,
-    });
-
-    if (error) {
-      console.error('❌ Failed to log consent', error);
-    } else {
-      console.log('✅ Consent logged successfully');
-    }
-  }
 
   const handleConnectStore = async () => {
     if (!isFormValid) {
@@ -69,16 +21,17 @@ const ShopifyLogin: React.FC = () => {
       return;
     }
 
-    if (!storeDomain) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const shop = searchParams.get('shop');
+
+    if (!shop) {
       console.error('❌ No store domain found');
       return;
     }
 
-    await logConsent();
-
+    // ✅ Start OAuth by redirecting to shopify_auth_start
     const baseUrl = window.location.origin;
-    const authUrl = `${baseUrl}/functions/v1/shopify_auth_start?shop=${storeDomain}`;
-    window.location.href = authUrl;
+    window.location.href = `${baseUrl}/functions/v1/shopify_auth_start?shop=${encodeURIComponent(shop)}`;
   };
 
   return (
