@@ -19,6 +19,7 @@ import ShopifyLogin from "./pages/ShopifyLogin";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Store from "./pages/Store";
+import Auth from "./pages/Auth"; // ✅ New auth page
 
 import { bootstrapAuthFromCookie, supabase } from "@/lib/initAuth";
 import { initializeShopifyAppBridge } from "@/lib/shopify-app-bridge";
@@ -54,9 +55,12 @@ const AppRoutes = () => {
     };
   }, []);
 
-  // ✅ Conditionally initialize App Bridge on embedded pages only
+  // ✅ Initialize Shopify App Bridge ONLY on embedded pages
   useEffect(() => {
-    const embeddedPages = ["/", "/shopify-login", "/welcome", "/dashboard", "/analytics", "/customers", "/orders", "/products", "/assistant", "/settings", "/store", "/help"];
+    const embeddedPages = [
+      "/", "/welcome", "/dashboard", "/analytics", "/customers", "/orders",
+      "/products", "/assistant", "/settings", "/store", "/help"
+    ];
 
     if (embeddedPages.some((page) => location.pathname.startsWith(page))) {
       initializeShopifyAppBridge();
@@ -77,6 +81,7 @@ const AppRoutes = () => {
       <Route path="/shopify-login" element={isAuthenticated ? <Navigate to="/welcome" /> : <ShopifyLogin />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/auth" element={<Auth />} /> {/* ✅ Shopify OAuth auto re-auth */}
 
       {/* Welcome onboarding */}
       <Route path="/welcome" element={isAuthenticated ? <Welcome /> : <Navigate to="/shopify-login" />} />
