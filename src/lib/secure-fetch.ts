@@ -1,5 +1,3 @@
-// File: src/lib/secure-fetch.ts
-
 import { refreshToken } from "./initAuth";
 import { fetchSessionToken, initializeShopifyAppBridge } from "@/lib/shopify-app-bridge";
 
@@ -65,3 +63,6 @@ export async function secureFetch(
 
   return response;
 }
+
+// TODO: (Future Optimization) Cache the Shopify session token temporarily inside secureFetch
+//       to avoid refetching on every request if AppBridge is already initialized.
