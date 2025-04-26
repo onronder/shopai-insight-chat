@@ -1,6 +1,9 @@
 // File: src/lib/secure-fetch.ts
 
 import { refreshToken } from "./initAuth";
+import { fetchSessionToken, initializeShopifyAppBridge } from "@/lib/shopify-app-bridge";
+
+const app = initializeShopifyAppBridge();
 
 /**
  * Reads a secure cookie value by name
@@ -11,17 +14,28 @@ function getCookie(name: string): string | null {
 }
 
 /**
- * Sends a secure request to Supabase Edge Function with fallback for expired token
+ * Sends a secure request to Supabase Edge Function with fallback for expired Supabase token
+ * Automatically attaches Shopify App Bridge session token if available
  */
 export async function secureFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  let token = getCookie("sb-token");
+  let supabaseToken = getCookie("sb-token");
+  let shopifyToken: string | null = null;
+
+  try {
+    if (app) {
+      shopifyToken = await fetchSessionToken(app);
+    }
+  } catch (error) {
+    console.error("⚡ Failed to fetch Shopify session token", error);
+  }
 
   const buildHeaders = (existing: HeadersInit = {}): HeadersInit => ({
     ...existing,
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(supabaseToken ? { Authorization: `Bearer ${supabaseToken}` } : {}),
+    ...(shopifyToken ? { "X-Shopify-Session-Token": shopifyToken } : {}),
     "Content-Type": "application/json",
   });
 
@@ -34,7 +48,7 @@ export async function secureFetch(
     try {
       const refreshed = await refreshToken();
       if (refreshed) {
-        token = getCookie("sb-token");
+        supabaseToken = getCookie("sb-token");
         response = await fetch(url, {
           ...options,
           headers: buildHeaders(options.headers),

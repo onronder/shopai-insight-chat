@@ -1,21 +1,22 @@
-import React from "react"
-import { AppLayout } from "@/components/layout/AppLayout"
-import { LoadingState } from "@/components/common/LoadingState"
-import { ErrorState } from "@/components/ui/ErrorState"
-import { ProductsHeader } from "@/components/products/ProductsHeader"
-import { VariantSalesChart } from "@/components/products/VariantSalesChart"
-import { InventoryRiskTable } from "@/components/products/InventoryRiskTable"
-import { ReturnRateChart } from "@/components/products/ReturnRateChart"
-import { ProductLifecycleChart } from "@/components/products/ProductLifecycleChart"
-import { useProductsData, Timeframe } from "@/hooks/useProductsData"
-import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
-import { Button } from "@/components/ui/button"
-import { EmptyState } from "@/components/ui/EmptyState"
-import { Card, CardContent } from "@/components/ui/card"
-import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard"
+import React from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { LoadingState } from "@/components/common/LoadingState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { ProductsHeader } from "@/components/products/ProductsHeader";
+import { VariantSalesChart } from "@/components/products/VariantSalesChart";
+import { InventoryRiskTable } from "@/components/products/InventoryRiskTable";
+import { ReturnRateChart } from "@/components/products/ReturnRateChart";
+import { ProductLifecycleChart } from "@/components/products/ProductLifecycleChart";
+import { useProductsData, Timeframe } from "@/hooks/useProductsData";
+import { SyncStatusBanner } from "@/components/common/SyncStatusBanner";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Card, CardContent } from "@/components/ui/card";
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard";
+import { PlanGate } from "@/components/auth/PlanGate";
 
 const ProductsPage: React.FC = () => {
-  useStoreAccessGuard()
+  useStoreAccessGuard();
 
   const {
     isLoading,
@@ -30,11 +31,11 @@ const ProductsPage: React.FC = () => {
     setTimeframe,
     status,
     hasData
-  } = useProductsData()
+  } = useProductsData();
 
   const handleTimeframeChange = (newTimeframe: Timeframe) => {
-    setTimeframe(newTimeframe)
-  }
+    setTimeframe(newTimeframe);
+  };
 
   if (isLoading) {
     return (
@@ -42,7 +43,7 @@ const ProductsPage: React.FC = () => {
         <SyncStatusBanner />
         <LoadingState message="Loading product analytics..." />
       </AppLayout>
-    )
+    );
   }
 
   if (error) {
@@ -55,7 +56,7 @@ const ProductsPage: React.FC = () => {
           action={<Button onClick={() => refetch()}>Retry</Button>}
         />
       </AppLayout>
-    )
+    );
   }
 
   if (!hasData) {
@@ -68,101 +69,103 @@ const ProductsPage: React.FC = () => {
           action={<Button onClick={() => refetch()}>Refresh Data</Button>}
         />
       </AppLayout>
-    )
+    );
   }
 
   return (
-    <AppLayout>
-      <SyncStatusBanner />
-      <div className="grid gap-4">
-        <ProductsHeader timeframe={timeframe} onTimeframeChange={handleTimeframeChange} />
+    <PlanGate required="basic">
+      <AppLayout>
+        <SyncStatusBanner />
+        <div className="grid gap-4">
+          <ProductsHeader timeframe={timeframe} onTimeframeChange={handleTimeframeChange} />
 
-        {/* Top Selling Variants */}
-        {status.variantSales === "pending" ? (
-          <Card>
-            <CardContent className="p-6 flex justify-center items-center h-[300px]">
-              <LoadingState message="Loading top selling variants..." />
-            </CardContent>
-          </Card>
-        ) : status.variantSales === "error" ? (
-          <Card>
-            <CardContent className="p-6">
-              <ErrorState
-                title="Failed to load top selling variants"
-                description="An error occurred while fetching top selling variant data."
-                action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <VariantSalesChart data={variantSalesData} />
-        )}
+          {/* Top Selling Variants */}
+          {status.variantSales === "pending" ? (
+            <Card>
+              <CardContent className="p-6 flex justify-center items-center h-[300px]">
+                <LoadingState message="Loading top selling variants..." />
+              </CardContent>
+            </Card>
+          ) : status.variantSales === "error" ? (
+            <Card>
+              <CardContent className="p-6">
+                <ErrorState
+                  title="Failed to load top selling variants"
+                  description="An error occurred while fetching top selling variant data."
+                  action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <VariantSalesChart data={variantSalesData} />
+          )}
 
-        {/* Inventory Risks */}
-        {status.inventoryRisks === "pending" ? (
-          <Card>
-            <CardContent className="p-6 flex justify-center items-center h-[300px]">
-              <LoadingState message="Loading inventory risk data..." />
-            </CardContent>
-          </Card>
-        ) : status.inventoryRisks === "error" ? (
-          <Card>
-            <CardContent className="p-6">
-              <ErrorState
-                title="Failed to load inventory risks"
-                description="An error occurred while fetching inventory risk data."
-                action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <InventoryRiskTable data={inventoryRisksData} />
-        )}
+          {/* Inventory Risks */}
+          {status.inventoryRisks === "pending" ? (
+            <Card>
+              <CardContent className="p-6 flex justify-center items-center h-[300px]">
+                <LoadingState message="Loading inventory risk data..." />
+              </CardContent>
+            </Card>
+          ) : status.inventoryRisks === "error" ? (
+            <Card>
+              <CardContent className="p-6">
+                <ErrorState
+                  title="Failed to load inventory risks"
+                  description="An error occurred while fetching inventory risk data."
+                  action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <InventoryRiskTable data={inventoryRisksData} />
+          )}
 
-        {/* Return Rates */}
-        {status.returnRates === "pending" ? (
-          <Card>
-            <CardContent className="p-6 flex justify-center items-center h-[300px]">
-              <LoadingState message="Loading return rate data..." />
-            </CardContent>
-          </Card>
-        ) : status.returnRates === "error" ? (
-          <Card>
-            <CardContent className="p-6">
-              <ErrorState
-                title="Failed to load return rates"
-                description="An error occurred while fetching return rate data."
-                action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <ReturnRateChart data={returnRatesData} />
-        )}
+          {/* Return Rates */}
+          {status.returnRates === "pending" ? (
+            <Card>
+              <CardContent className="p-6 flex justify-center items-center h-[300px]">
+                <LoadingState message="Loading return rate data..." />
+              </CardContent>
+            </Card>
+          ) : status.returnRates === "error" ? (
+            <Card>
+              <CardContent className="p-6">
+                <ErrorState
+                  title="Failed to load return rates"
+                  description="An error occurred while fetching return rate data."
+                  action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <ReturnRateChart data={returnRatesData} />
+          )}
 
-        {/* Product Lifecycle */}
-        {status.productLifecycle === "pending" ? (
-          <Card>
-            <CardContent className="p-6 flex justify-center items-center h-[300px]">
-              <LoadingState message="Loading product lifecycle data..." />
-            </CardContent>
-          </Card>
-        ) : status.productLifecycle === "error" ? (
-          <Card>
-            <CardContent className="p-6">
-              <ErrorState
-                title="Failed to load product lifecycle"
-                description="An error occurred while fetching lifecycle insights."
-                action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <ProductLifecycleChart data={productLifecycleData} />
-        )}
-      </div>
-    </AppLayout>
-  )
-}
+          {/* Product Lifecycle */}
+          {status.productLifecycle === "pending" ? (
+            <Card>
+              <CardContent className="p-6 flex justify-center items-center h-[300px]">
+                <LoadingState message="Loading product lifecycle data..." />
+              </CardContent>
+            </Card>
+          ) : status.productLifecycle === "error" ? (
+            <Card>
+              <CardContent className="p-6">
+                <ErrorState
+                  title="Failed to load product lifecycle"
+                  description="An error occurred while fetching lifecycle insights."
+                  action={<Button size="sm" onClick={() => refetch()}>Retry</Button>}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <ProductLifecycleChart data={productLifecycleData} />
+          )}
+        </div>
+      </AppLayout>
+    </PlanGate>
+  );
+};
 
-export default ProductsPage
+export default ProductsPage;

@@ -29,6 +29,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { GeoHeatmapChart, GeoHeatmapPoint } from "@/components/analytics/GeoHeatmapChart";
+import { PlanGate } from "@/components/auth/PlanGate";
 
 const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -234,4 +235,11 @@ const Analytics: React.FC = () => {
   );
 };
 
-export default Analytics;
+// ✅ Wrap with PlanGate for Pro-level access enforcement
+export default function AnalyticsPage() {
+  return (
+    <PlanGate required="pro">
+      <Analytics />
+    </PlanGate>
+  );
+}

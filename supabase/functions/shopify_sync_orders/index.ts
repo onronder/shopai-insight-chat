@@ -12,6 +12,47 @@ const supabase = createClient(
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
 const context = "shopify_sync_orders";
 
+// Correct types
+interface ShopifyCustomer {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  tags: string;
+  total_spent: string;
+  orders_count: number;
+  last_order_created_at: string;
+}
+
+interface ShopifyLineItem {
+  product_id?: number;
+  variant_id?: number;
+  title: string;
+  sku?: string;
+  quantity: number;
+  price: string;
+  total_discount?: number;
+}
+
+interface ShopifyOrder {
+  id: number;
+  name: string;
+  created_at: string;
+  processed_at: string;
+  updated_at: string;
+  total_price: string;
+  subtotal_price: string;
+  total_discounts: string;
+  currency: string;
+  financial_status: string;
+  fulfillment_status: string;
+  billing_address?: { city?: string; province?: string; country?: string };
+  shipping_address?: { city?: string; province?: string; country?: string };
+  customer?: ShopifyCustomer;
+  line_items: ShopifyLineItem[];
+}
+
 serve(async () => {
   const startTime = performance.now();
 
@@ -33,14 +74,14 @@ serve(async () => {
 
       await supabase.from("stores").update({
         sync_status: "syncing",
-        sync_started_at: now
+        sync_started_at: now,
       }).eq("id", store.id);
 
       try {
         const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=250`;
-        const headers = {
+        const headers: HeadersInit = {
           "X-Shopify-Access-Token": store.access_token,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         };
 
         let pageUrl: string | null = baseUrl;
@@ -48,12 +89,14 @@ serve(async () => {
 
         while (pageUrl) {
           const res: Response = await fetch(pageUrl, { headers });
+
           if (!res.ok) {
             const errorText = await res.text();
             throw new Error(`Shopify fetch failed: ${errorText}`);
           }
 
-          const { orders } = await res.json();
+          const jsonData: { orders: ShopifyOrder[] } = await res.json();
+          const orders = jsonData.orders;
 
           for (const order of orders) {
             const {
@@ -71,10 +114,10 @@ serve(async () => {
               billing_address,
               shipping_address,
               customer,
-              line_items
+              line_items,
             } = order;
 
-            let customer_id = null;
+            let customer_id: string | null = null;
             if (customer?.id) {
               const { data: customerRecord, error: customerError } = await supabase
                 .from("shopify_customers")
@@ -85,10 +128,10 @@ serve(async () => {
                   last_name: customer.last_name,
                   phone: customer.phone,
                   tags: customer.tags || null,
-                  total_spent: parseFloat(customer.total_spent ?? 0),
+                  total_spent: parseFloat(customer.total_spent ?? "0"),
                   orders_count: customer.orders_count || 0,
                   last_order_at: customer.last_order_created_at || null,
-                  store_id: store.id
+                  store_id: store.id,
                 })
                 .select("id")
                 .single();
@@ -118,7 +161,7 @@ serve(async () => {
                 created_at: created_at ? new Date(created_at) : null,
                 processed_at: processed_at ? new Date(processed_at) : null,
                 shopify_updated_at: updated_at ? new Date(updated_at) : null,
-                shopify_synced_at: new Date()
+                shopify_synced_at: new Date(),
               })
               .select("id")
               .single();
@@ -135,55 +178,55 @@ serve(async () => {
                   sku: item.sku || null,
                   quantity: item.quantity,
                   price: parseFloat(item.price),
-                  discount: item.total_discount ?? 0
+                  discount: item.total_discount ?? 0,
                 });
               }
               synced++;
             }
           }
 
-          const linkHeader: string | null = res.headers.get("link");
-          const nextUrlMatch = linkHeader?.match(/<([^>]+)>;\s*rel=next/);
-          pageUrl = nextUrlMatch?.[1] ?? null;
+          const linkHeader = res.headers.get("link") as string | null;
+          const nextUrlMatch: RegExpMatchArray | null = linkHeader ? linkHeader.match(/<([^>]+)>;\s*rel=next/) : null;
+          pageUrl = nextUrlMatch ? nextUrlMatch[1] : null;
         }
 
         await supabase.from("stores").update({
           sync_status: "completed",
-          sync_finished_at: new Date().toISOString()
+          sync_finished_at: new Date().toISOString(),
         }).eq("id", store.id);
 
         logInfo(context, "Store sync completed", {
           store: store.domain,
-          orders_synced: synced
+          orders_synced: synced,
         });
       } catch (syncError) {
         const message = syncError instanceof Error ? syncError.message : String(syncError);
 
         logError(context, "Sync failed for store", {
           error: message,
-          store: store.domain
+          store: store.domain,
         });
 
         await supabase.from("stores").update({
           sync_status: "failed",
-          sync_finished_at: new Date().toISOString()
+          sync_finished_at: new Date().toISOString(),
         }).eq("id", store.id);
 
         await supabase.from("sync_errors").insert({
           store_id: store.id,
           function: context,
           error: message,
-          phase: "sync"
+          phase: "sync",
         });
       }
     }
 
     logInfo(context, "Full order sync completed", {
-      duration_ms: performance.now() - startTime
+      duration_ms: performance.now() - startTime,
     });
 
     return addSecurityHeaders(
-      new Response("Shopify order sync completed", { status: 200 })
+      new Response("Shopify order sync completed", { status: 200 }),
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

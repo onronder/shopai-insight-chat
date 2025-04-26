@@ -1,5 +1,3 @@
-// File: supabase/functions/shopify_delta_products/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
@@ -12,13 +10,33 @@ const supabase = createClient(
 );
 
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
+const context = "shopify_delta_products";
+
+interface ShopifyVariant {
+  id: number;
+  title: string;
+  sku?: string;
+  price?: string;
+  inventory_quantity?: number;
+  position?: number;
+}
+
+interface ShopifyProduct {
+  id: number;
+  title: string;
+  product_type?: string;
+  vendor?: string;
+  tags?: string;
+  updated_at: string;
+  variants: ShopifyVariant[];
+}
 
 serve(async (req: Request): Promise<Response> => {
   const startTime = performance.now();
   const path = new URL(req.url).pathname;
 
   try {
-    logInfo("shopify_delta_products", "Sync started", { path });
+    logInfo(context, "Delta product sync started", { path });
 
     const { data: stores, error } = await supabase
       .from("shopify_stores")
@@ -26,7 +44,7 @@ serve(async (req: Request): Promise<Response> => {
       .neq("access_token", null);
 
     if (error || !stores) {
-      logError("shopify_delta_products", error ?? "No stores found");
+      logError(context, "Failed to fetch stores", { error });
       return addSecurityHeaders(returnJsonError(500, "Failed to load store list"));
     }
 
@@ -36,7 +54,7 @@ serve(async (req: Request): Promise<Response> => {
         : "";
 
       const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250${updatedAt}`;
-      const headers = {
+      const headers: HeadersInit = {
         "X-Shopify-Access-Token": store.access_token,
         "Content-Type": "application/json",
       };
@@ -54,12 +72,16 @@ serve(async (req: Request): Promise<Response> => {
         const res: Response = await fetch(pageUrl, { headers });
         if (!res.ok) {
           const errText = await res.text();
-          logError("shopify_delta_products", errText, { store: store.domain });
+          logError(context, "Shopify fetch failed", {
+            store: store.domain,
+            status: res.status,
+            error: errText,
+          });
           break;
         }
 
-        const json = await res.json();
-        const products = json.products ?? [];
+        const body = await res.json();
+        const products: ShopifyProduct[] = body.products ?? [];
 
         for (const p of products) {
           const {
@@ -69,54 +91,56 @@ serve(async (req: Request): Promise<Response> => {
             vendor,
             tags,
             updated_at,
-            variants
+            variants,
           } = p;
 
-          const { data: prod, error: insertError } = await supabase
+          const { data: productRecord, error: upsertError } = await supabase
             .from("shopify_products")
             .upsert({
               shopify_product_id: shopify_product_id.toString(),
               title,
               product_type: product_type || null,
               vendor: vendor || null,
-              tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+              tags: tags ? tags.split(",").map((t) => t.trim()) : [],
               updated_at: updated_at ? new Date(updated_at) : null,
               shopify_synced_at: now,
-              store_id: store.id
+              store_id: store.id,
             })
             .select("id")
             .single();
 
-          if (insertError || !prod) {
-            logError("shopify_delta_products", insertError?.message ?? "Insert failed", {
+          if (upsertError || !productRecord) {
+            logError(context, "Product upsert failed", {
+              store: store.domain,
               shopify_product_id,
-              store_id: store.id,
+              error: upsertError?.message,
             });
             continue;
           }
 
-          const product_id = prod.id;
+          const product_id = productRecord.id;
 
-          for (const v of variants ?? []) {
-            const variantUpsertError = await supabase
+          for (const variant of variants ?? []) {
+            const variantError = await supabase
               .from("shopify_product_variants")
               .upsert({
-                shopify_variant_id: v.id.toString(),
-                title: v.title,
-                sku: v.sku,
-                price: v.price ? parseFloat(v.price) : null,
-                inventory_quantity: v.inventory_quantity ?? null,
-                position: v.position ?? null,
+                shopify_variant_id: variant.id.toString(),
+                title: variant.title,
+                sku: variant.sku || null,
+                price: variant.price ? parseFloat(variant.price) : null,
+                inventory_quantity: variant.inventory_quantity ?? null,
+                position: variant.position ?? null,
                 product_id,
                 store_id: store.id,
-                shopify_synced_at: now
+                shopify_synced_at: now,
               })
               .then((res) => res.error);
 
-            if (variantUpsertError) {
-              logError("shopify_delta_products", variantUpsertError.message, {
-                variant_id: v.id,
-                store_id: store.id,
+            if (variantError) {
+              logError(context, "Variant upsert failed", {
+                store: store.domain,
+                variant_id: variant.id,
+                error: variantError.message,
               });
             }
           }
@@ -124,9 +148,9 @@ serve(async (req: Request): Promise<Response> => {
           productCount++;
         }
 
-        const link: string | null = res.headers.get("link");
-        const nextUrl: string | undefined = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-        pageUrl = nextUrl ?? null;
+        const linkHeader: string | null = res.headers.get("link");
+        const nextUrlMatch: RegExpMatchArray | null = linkHeader ? linkHeader.match(/<([^>]+)>;\s*rel=next/) : null;
+        pageUrl = nextUrlMatch ? nextUrlMatch[1] : null;
       }
 
       await supabase
@@ -134,24 +158,24 @@ serve(async (req: Request): Promise<Response> => {
         .update({ sync_finished_at: new Date().toISOString() })
         .eq("id", store.id);
 
-      logInfo("shopify_delta_products", "Store sync completed", {
+      logInfo(context, "Store delta product sync completed", {
         store: store.domain,
-        productCount,
+        products_synced: productCount,
       });
     }
 
     const duration = performance.now() - startTime;
-    logInfo("shopify_delta_products", "Full sync completed", { duration_ms: duration });
+    logInfo(context, "Full delta sync completed", { duration_ms: duration });
 
     return addSecurityHeaders(
-      new Response("Delta product sync completed", { status: 200 })
+      new Response("Delta product sync completed", { status: 200 }),
     );
+
   } catch (err) {
-    logError("shopify_delta_products", err instanceof Error ? err : new Error("Unknown error"), {
-      path
-    });
+    const message = err instanceof Error ? err.message : String(err);
+    logError(context, message, { path });
     return addSecurityHeaders(
-      returnJsonError(500, "Unexpected error occurred")
+      returnJsonError(500, "Unexpected delta product sync error"),
     );
   }
 });

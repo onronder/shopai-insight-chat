@@ -12,8 +12,9 @@ import { FulfillmentDelaysChart } from "@/components/orders/FulfillmentDelaysCha
 import { useOrdersData } from "@/hooks/useOrdersData"
 import { SyncStatusBanner } from "@/components/common/SyncStatusBanner"
 import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard"
+import { PlanGate } from "@/components/auth/PlanGate" // ✅ Import PlanGate
 
-const OrdersPage: React.FC = () => {
+const OrdersPageContent: React.FC = () => {
   useStoreAccessGuard()
 
   const {
@@ -96,4 +97,11 @@ const OrdersPage: React.FC = () => {
   )
 }
 
-export default OrdersPage
+// ✅ Wrap with PlanGate
+export default function OrdersPage() {
+  return (
+    <PlanGate required="basic">
+      <OrdersPageContent />
+    </PlanGate>
+  )
+}

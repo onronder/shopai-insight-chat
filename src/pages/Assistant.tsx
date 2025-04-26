@@ -11,8 +11,12 @@ import { MessageDisplay } from "@/components/assistant/MessageDisplay";
 import { MessageInput } from "@/components/assistant/MessageInput";
 import { EmptyConversation } from "@/components/assistant/EmptyConversation";
 import { useConversations } from "@/hooks/useConversations";
+import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard";
+import { PlanGate } from "@/components/auth/PlanGate";
 
-const AssistantPage: React.FC = () => {
+const Assistant: React.FC = () => {
+  useStoreAccessGuard();
+
   const {
     conversations,
     activeConversation,
@@ -104,4 +108,11 @@ const AssistantPage: React.FC = () => {
   );
 };
 
-export default AssistantPage;
+// ✅ Pro AI Plan Required
+export default function AssistantPage() {
+  return (
+    <PlanGate required="pro_ai">
+      <Assistant />
+    </PlanGate>
+  );
+}

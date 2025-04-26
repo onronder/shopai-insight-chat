@@ -12,8 +12,9 @@ import { CustomerAcquisitionChart } from "@/components/dashboard/CustomerAcquisi
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { SyncStatusBanner } from "@/components/common/SyncStatusBanner";
 import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard";
+import { PlanGate } from "@/components/auth/PlanGate";
 
-const Dashboard: React.FC = () => {
+const DashboardInner: React.FC = () => {
   useStoreAccessGuard();
 
   const {
@@ -65,4 +66,10 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default function Dashboard() {
+  return (
+    <PlanGate required="basic">
+      <DashboardInner />
+    </PlanGate>
+  );
+}

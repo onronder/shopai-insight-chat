@@ -1,5 +1,7 @@
+// File: src/components/layout/sidebar.tsx
+
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   BarChart3,
   Home,
@@ -9,13 +11,22 @@ import {
   Bot,
   Settings,
   HelpCircle,
-  ShieldCheck
+  ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useBillingInfo } from "@/hooks/useBillingInfo";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Sidebar: React.FC = () => {
+  const { data: billingInfo, isLoading: billingLoading } = useBillingInfo();
+  const navigate = useNavigate();
+
+  const isTrialActive = billingInfo?.trial_ends_at && new Date(billingInfo.trial_ends_at) > new Date();
+  const isSubscriptionActive = billingInfo?.subscription_status === "active";
+
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col h-full">
       <div className="p-4">
@@ -35,6 +46,23 @@ export const Sidebar: React.FC = () => {
           <NavItem href="/store" icon={ShieldCheck} label="Store Intelligence" />
           <NavItem href="/assistant" icon={Bot} label="AI Assistant" />
         </nav>
+
+        {/* Billing Management Section */}
+        <div className="mt-8">
+          {billingLoading ? (
+            <Skeleton className="h-10 w-full rounded-md" />
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start mt-4"
+              onClick={() => navigate("/settings/billing")}
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {isSubscriptionActive || isTrialActive ? "Manage Subscription" : "Choose a Plan"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mt-auto p-4">

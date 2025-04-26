@@ -1,5 +1,3 @@
-// File: supabase/functions/shopify_delta_orders/index.ts
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logInfo, logError } from "../_shared/logging.ts";
@@ -12,13 +10,42 @@ const supabase = createClient(
 );
 
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
+const context = "shopify_delta_orders";
+
+interface ShopifyCustomer {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface ShopifyLineItem {
+  title: string;
+  quantity: number;
+  price: string;
+  total_discount?: number;
+}
+
+interface ShopifyOrder {
+  id: number;
+  created_at: string;
+  processed_at: string;
+  total_price: string;
+  subtotal_price: string;
+  total_discounts: string;
+  currency: string;
+  financial_status: string;
+  fulfillment_status: string;
+  customer?: ShopifyCustomer;
+  line_items: ShopifyLineItem[];
+}
 
 serve(async (req: Request): Promise<Response> => {
   const startTime = performance.now();
   const path = new URL(req.url).pathname;
 
   try {
-    logInfo("shopify_delta_orders", "Sync started", { path });
+    logInfo(context, "Delta sync started", { path });
 
     const { data: stores, error } = await supabase
       .from("shopify_stores")
@@ -26,7 +53,7 @@ serve(async (req: Request): Promise<Response> => {
       .neq("access_token", null);
 
     if (error || !stores) {
-      logError("shopify_delta_orders", error ?? "No stores found");
+      logError(context, "Failed to fetch stores", { error });
       return addSecurityHeaders(returnJsonError(500, "Error loading stores"));
     }
 
@@ -36,7 +63,7 @@ serve(async (req: Request): Promise<Response> => {
         : "";
 
       const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=250${updatedAt}`;
-      const headers = {
+      const headers: HeadersInit = {
         "X-Shopify-Access-Token": store.access_token,
         "Content-Type": "application/json",
       };
@@ -53,12 +80,16 @@ serve(async (req: Request): Promise<Response> => {
         const res: Response = await fetch(pageUrl, { headers });
         if (!res.ok) {
           const errText = await res.text();
-          logError("shopify_delta_orders", errText, { store: store.domain });
+          logError(context, "Shopify fetch failed", {
+            store: store.domain,
+            status: res.status,
+            error: errText,
+          });
           break;
         }
 
-        const json = await res.json();
-        const orders = json.orders ?? [];
+        const body = await res.json();
+        const orders: ShopifyOrder[] = body.orders ?? [];
 
         for (const order of orders) {
           const {
@@ -91,12 +122,13 @@ serve(async (req: Request): Promise<Response> => {
               .single();
 
             if (customerError) {
-              logError("shopify_delta_orders", customerError.message, {
+              logError(context, "Customer upsert failed", {
                 customer_id: customer.id,
                 store_id: store.id,
+                error: customerError.message,
               });
             } else {
-              customer_id = customerRecord.id;
+              customer_id = customerRecord?.id;
             }
           }
 
@@ -114,14 +146,16 @@ serve(async (req: Request): Promise<Response> => {
               fulfillment_status,
               created_at: created_at ? new Date(created_at) : null,
               processed_at: processed_at ? new Date(processed_at) : null,
+              shopify_synced_at: new Date(),
             })
             .select("id")
             .single();
 
-          if (orderError || !orderRecord) {
-            logError("shopify_delta_orders", orderError?.message ?? "Order upsert failed", {
+          if (!orderRecord || orderError) {
+            logError(context, "Order upsert failed", {
               order_id: shopify_order_id,
               store_id: store.id,
+              error: orderError?.message,
             });
             continue;
           }
@@ -144,9 +178,9 @@ serve(async (req: Request): Promise<Response> => {
           orderCount++;
         }
 
-        const link: string | null = res.headers.get("link");
-        const nextUrl: string | undefined = link?.match(/<([^>]+)>; rel="next"/)?.[1];
-        pageUrl = nextUrl ?? null;
+        const linkHeader = res.headers.get("link") as string | null;
+        const nextUrlMatch: RegExpMatchArray | null = linkHeader ? linkHeader.match(/<([^>]+)>;\s*rel=next/) : null;
+        pageUrl = nextUrlMatch ? nextUrlMatch[1] : null;
       }
 
       await supabase
@@ -154,21 +188,23 @@ serve(async (req: Request): Promise<Response> => {
         .update({ sync_finished_at: new Date().toISOString() })
         .eq("id", store.id);
 
-      logInfo("shopify_delta_orders", "Store sync completed", {
+      logInfo(context, "Store delta sync completed", {
         store: store.domain,
-        orderCount,
+        orders_synced: orderCount,
       });
     }
 
-    logInfo("shopify_delta_orders", "Sync completed", {
+    logInfo(context, "All delta syncs completed", {
       duration_ms: performance.now() - startTime,
     });
 
     return addSecurityHeaders(
-      new Response("Delta order sync completed", { status: 200 })
+      new Response("Delta order sync completed", { status: 200 }),
     );
+
   } catch (err) {
-    logError("shopify_delta_orders", err instanceof Error ? err : new Error("Unknown error"), { path });
-    return addSecurityHeaders(returnJsonError(500, "Unexpected error occurred"));
+    const message = err instanceof Error ? err.message : String(err);
+    logError(context, message, { path });
+    return addSecurityHeaders(returnJsonError(500, "Unexpected delta sync error"));
   }
 });

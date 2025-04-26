@@ -12,20 +12,22 @@ const supabase = createClient(
 const SHOPIFY_API_VERSION = Deno.env.get("PROJECT_SHOPIFY_API_VERSION")!;
 const context = "shopify_sync_products";
 
-type ShopifyProduct = {
+interface ShopifyVariant {
+  id: number;
+  title: string;
+  sku?: string;
+  price?: string;
+  inventory_quantity?: number;
+}
+
+interface ShopifyProduct {
   id: number;
   title: string;
   product_type?: string;
   vendor?: string;
   tags?: string;
-  variants: {
-    id: number;
-    title: string;
-    sku?: string;
-    price?: string;
-    inventory_quantity?: number;
-  }[];
-};
+  variants: ShopifyVariant[];
+}
 
 serve(async (): Promise<Response> => {
   const startTime = performance.now();
@@ -47,13 +49,12 @@ serve(async (): Promise<Response> => {
       const now = new Date().toISOString();
 
       try {
-        await supabase
-          .from("stores")
+        await supabase.from("stores")
           .update({ sync_status: "syncing", sync_started_at: now })
           .eq("id", store.id);
 
         const baseUrl = `https://${store.domain}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250`;
-        const headers = {
+        const headers: HeadersInit = {
           "X-Shopify-Access-Token": store.access_token,
           "Content-Type": "application/json",
         };
@@ -127,7 +128,7 @@ serve(async (): Promise<Response> => {
 
             const product_id = productRecord.id;
 
-            for (const v of variants || []) {
+            for (const v of variants) {
               const { error: variantError } = await supabase
                 .from("shopify_product_variants")
                 .upsert({
@@ -160,43 +161,37 @@ serve(async (): Promise<Response> => {
             synced++;
           }
 
-          const link: string | null = res.headers.get("link");
-          const nextUrl: string | null =
-            link?.match(/<([^>]+)>; rel="next"/)?.[1] ?? null;
-          pageUrl = nextUrl;
+          const linkHeader = res.headers.get("link") as string | null;
+          const nextUrlMatch: RegExpMatchArray | null = linkHeader ? linkHeader.match(/<([^>]+)>; rel="next"/) : null;
+          pageUrl = nextUrlMatch ? nextUrlMatch[1] : null;
         }
 
-        await supabase
-          .from("stores")
-          .update({
-            sync_status: "completed",
-            sync_finished_at: new Date().toISOString(),
-          })
+        await supabase.from("stores")
+          .update({ sync_status: "completed", sync_finished_at: new Date().toISOString() })
           .eq("id", store.id);
 
         logInfo(context, "Store product sync completed", {
           store: store.domain,
           products_synced: synced,
         });
+
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+
         await supabase.from("sync_errors").insert({
           store_id: store.id,
           function: context,
-          error: err instanceof Error ? err.message : "Unhandled error",
+          error: message,
           phase: "top-level",
         });
 
-        await supabase
-          .from("stores")
-          .update({
-            sync_status: "failed",
-            sync_finished_at: new Date().toISOString(),
-          })
+        await supabase.from("stores")
+          .update({ sync_status: "failed", sync_finished_at: new Date().toISOString() })
           .eq("id", store.id);
 
         logError(context, "Unhandled store sync error", {
           store: store.domain,
-          error: err,
+          error: message,
         });
       }
     }
@@ -205,11 +200,11 @@ serve(async (): Promise<Response> => {
       duration_ms: performance.now() - startTime,
     });
 
-    return addSecurityHeaders(
-      new Response("Shopify product sync completed", { status: 200 })
-    );
+    return addSecurityHeaders(new Response("Shopify product sync completed", { status: 200 }));
+
   } catch (err) {
-    logError(context, err);
+    const message = err instanceof Error ? err.message : String(err);
+    logError(context, message);
     return addSecurityHeaders(returnJsonError(500, "Sync failed"));
   }
 });

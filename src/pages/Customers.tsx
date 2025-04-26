@@ -13,8 +13,9 @@ import { SyncStatusBanner } from "@/components/common/SyncStatusBanner";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { useStoreAccessGuard } from "@/hooks/useStoreAccessGuard";
+import { PlanGate } from "@/components/auth/PlanGate";
 
-const CustomersPage: React.FC = () => {
+const Customers: React.FC = () => {
   useStoreAccessGuard();
 
   const {
@@ -51,7 +52,10 @@ const CustomersPage: React.FC = () => {
   }
 
   const hasNoData =
-    (!segmentsData?.length && !ltvDistributionData?.length && !churnCandidatesData?.length && !repeatCustomersData?.length);
+    (!segmentsData?.length &&
+      !ltvDistributionData?.length &&
+      !churnCandidatesData?.length &&
+      !repeatCustomersData?.length);
 
   if (hasNoData) {
     return (
@@ -75,16 +79,20 @@ const CustomersPage: React.FC = () => {
       <SyncStatusBanner />
       <div className="grid gap-4">
         <CustomerSegmentsTable />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <LtvDistributionChart data={ltvDistributionData} />
           <ChurnForecastChart data={churnCandidatesData} />
         </div>
-
         <BestCustomers data={repeatCustomersData} />
       </div>
     </AppLayout>
   );
 };
 
-export default CustomersPage;
+export default function CustomersPage() {
+  return (
+    <PlanGate required="pro">
+      <Customers />
+    </PlanGate>
+  );
+}
