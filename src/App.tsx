@@ -3,12 +3,8 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-
-import { bootstrapAuthFromCookie, supabase } from "@/lib/initAuth";
-import { initializeShopifyAppBridge } from "@/lib/shopify-app-bridge";
-
+import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "./pages/Dashboard";
 import AnalyticsPage from "./pages/Analytics";
 import CustomersPage from "./pages/Customers";
@@ -23,7 +19,10 @@ import ShopifyLogin from "./pages/ShopifyLogin";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Store from "./pages/Store";
-import AuthPage from "./pages/Auth"; // ✅ ADD THIS
+import AuthPage from "./pages/Auth";
+
+import { bootstrapAuthFromCookie, supabase } from "@/lib/initAuth";
+import { initializeShopifyAppBridge } from "@/lib/shopify-app-bridge";
 
 const queryClient = new QueryClient();
 
@@ -56,19 +55,22 @@ const AppRoutes = () => {
     };
   }, []);
 
-  // ✅ Initialize App Bridge only on safe embedded routes
+  // Initialize App Bridge if needed
   useEffect(() => {
-    const embeddedPages = [
-      "/", "/shopify-login", "/welcome", "/dashboard", "/analytics", "/customers",
-      "/orders", "/products", "/assistant", "/settings", "/store", "/help"
-    ];
-    if (embeddedPages.some((page) => location.pathname.startsWith(page))) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const host = urlParams.get("host");
+
+    if (host) {
       initializeShopifyAppBridge();
     }
   }, [location.pathname]);
 
   if (isAuthenticated === null) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
 
   return (
@@ -77,7 +79,7 @@ const AppRoutes = () => {
       <Route path="/shopify-login" element={isAuthenticated ? <Navigate to="/welcome" /> : <ShopifyLogin />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
-      <Route path="/auth" element={<AuthPage />} /> {/* ✅ ADD THIS */}
+      <Route path="/auth" element={<AuthPage />} />
 
       {/* Welcome onboarding */}
       <Route path="/welcome" element={isAuthenticated ? <Welcome /> : <Navigate to="/shopify-login" />} />
@@ -103,15 +105,17 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

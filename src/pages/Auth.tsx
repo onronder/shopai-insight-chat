@@ -9,9 +9,7 @@ const AuthPage = () => {
 
     if (shop) {
       const baseUrl = window.location.origin;
-      const authUrl = `${baseUrl}/functions/v1/shopify_auth_start?shop=${encodeURIComponent(shop)}`;
-      console.log(`🔁 Redirecting to Shopify auth: ${authUrl}`);
-      window.location.href = authUrl;
+      window.location.href = `${baseUrl}/functions/v1/shopify_auth_start?shop=${encodeURIComponent(shop)}`;
     } else {
       console.error("❌ No shop found in /auth. Cannot continue.");
     }

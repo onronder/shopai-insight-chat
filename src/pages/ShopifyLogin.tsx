@@ -1,12 +1,13 @@
 // File: src/pages/ShopifyLogin.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { ArrowRight, ShoppingBag, BarChart, Brain, Sparkles, AlertCircle } from "lucide-react";
+import { initializeShopifyAppBridge } from "@/lib/shopify-app-bridge"; // ✅ important
 
 const ShopifyLogin: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -14,6 +15,18 @@ const ShopifyLogin: React.FC = () => {
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const isFormValid = acceptedTerms && acceptedDataUsage;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const host = params.get("host");
+    const shop = params.get("shop");
+
+    if (host && shop) {
+      initializeShopifyAppBridge(); // ✅ initialize inside page safely
+    } else {
+      console.warn("⚠️ Missing host or shop. Skipping AppBridge init.");
+    }
+  }, []);
 
   const handleConnectStore = async () => {
     if (!isFormValid) {
