@@ -1,4 +1,6 @@
-import React, { useEffect } from "react";
+// File: src/components/layout/AppLayout.tsx
+
+import React from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { ThemeProvider } from "./ThemeProvider";
@@ -6,7 +8,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { SyncStatusBanner } from "../common/SyncStatusBanner";
 import { BillingReminderBanner } from "../billing/BillingReminderBanner";
 import { Link } from "react-router-dom";
-import { initializeShopifyAppBridge } from "@/lib/shopify-app-bridge"; // ✅ ADD THIS
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,13 +15,8 @@ interface AppLayoutProps {
 
 /**
  * Main layout wrapper for all pages in the application
- * Provides consistent structure with header, sidebar, and content area
  */
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
-  useEffect(() => {
-    initializeShopifyAppBridge(); // ✅ Initialize when layout mounts
-  }, []);
-
   return (
     <ThemeProvider>
       <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-background font-sans">
@@ -36,10 +32,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
         </div>
         <footer className="text-center text-xs text-muted-foreground py-4 border-t">
-          © 2025 ShopAI Insight.{' '}
+          © 2025 ShopAI Insight.{" "}
           <Link to="/privacy" className="hover:underline">
             Privacy Policy
-          </Link>{' '}·{' '}
+          </Link>{" "}
+          ·{" "}
           <Link to="/terms" className="hover:underline">
             Terms of Use
           </Link>

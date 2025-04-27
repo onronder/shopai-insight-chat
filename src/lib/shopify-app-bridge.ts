@@ -4,18 +4,20 @@ import createApp, { AppConfigV2 } from "@shopify/app-bridge";
 import { getSessionToken } from "@shopify/app-bridge-utils";
 
 /**
- * Safely initializes Shopify App Bridge.
+ * Initializes Shopify App Bridge securely.
+ * Redirects to /auth if host/shop missing.
  */
 export function initializeShopifyAppBridge() {
   const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY;
-  const params = new URLSearchParams(window.location.search);
-  const host = params.get("host");
-  const shop = params.get("shop");
-  const embedded = params.get("embedded");
+  const urlParams = new URLSearchParams(window.location.search);
+  const host = urlParams.get("host");
+  const shop = urlParams.get("shop");
 
   if (!apiKey || !host) {
     console.warn("⚡ Missing host or apiKey. Trying to fix...");
-    if (embedded && shop) {
+
+    if (shop) {
+      console.warn("⚡ Redirecting to /auth for reauthentication...");
       const baseUrl = window.location.origin;
       window.location.href = `${baseUrl}/auth?shop=${encodeURIComponent(shop)}`;
     } else {
@@ -34,7 +36,7 @@ export function initializeShopifyAppBridge() {
 }
 
 /**
- * Fetches Shopify session token.
+ * Fetches a fresh Shopify session token (JWT) from App Bridge.
  */
 export async function fetchSessionToken(app: ReturnType<typeof createApp>) {
   try {
