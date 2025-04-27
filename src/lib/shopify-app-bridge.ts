@@ -2,8 +2,7 @@ import createApp, { AppConfigV2 } from "@shopify/app-bridge";
 import { getSessionToken } from "@shopify/app-bridge-utils";
 
 /**
- * Initializes Shopify App Bridge securely.
- * If missing `host`, attempts OAuth reauthentication.
+ * Initializes Shopify App Bridge securely inside embedded apps.
  */
 export function initializeShopifyAppBridge() {
   const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY;
@@ -12,36 +11,34 @@ export function initializeShopifyAppBridge() {
   const shop = urlParams.get("shop");
 
   if (!apiKey || !host) {
-    console.warn("⚠️ Missing Shopify API Key or Host. Attempting reauthentication...");
+    console.warn("⚠️ Missing host or apiKey. Trying to fix...");
 
     if (shop) {
-      const baseUrl = window.location.origin;
-      window.location.href = `${baseUrl}/functions/v1/shopify_auth_start?shop=${encodeURIComponent(shop)}`;
+      window.location.href = `/auth?shop=${encodeURIComponent(shop)}`;
     } else {
-      console.error("❌ Missing shop parameter too. Cannot start reauthentication.");
+      console.error("❌ Cannot fix: missing shop too.");
     }
-
     return null;
   }
 
-  const config: AppConfigV2 = {
+  const appBridgeConfig: AppConfigV2 = {
     apiKey,
     host,
     forceRedirect: true,
   };
 
-  return createApp(config);
+  return createApp(appBridgeConfig);
 }
 
 /**
- * Fetches a fresh Shopify session token (JWT) from App Bridge.
+ * Fetches a fresh Shopify session token.
  */
 export async function fetchSessionToken(app: ReturnType<typeof createApp>) {
   try {
     const token = await getSessionToken(app);
     return token;
   } catch (error) {
-    console.error("❌ Failed to fetch session token:", error);
+    console.error("❌ Failed to fetch Shopify session token:", error);
     return null;
   }
 }
