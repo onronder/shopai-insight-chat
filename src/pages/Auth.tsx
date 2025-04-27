@@ -1,21 +1,21 @@
+// File: src/pages/Auth.tsx
+
 import { useEffect } from "react";
 
 const AuthPage = () => {
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shop = urlParams.get("shop");
+    const params = new URLSearchParams(window.location.search);
+    const shop = params.get("shop");
 
-    if (!shop) {
+    if (shop) {
+      const redirectUri = encodeURIComponent(`${window.location.origin}/functions/v1/shopify_oauth_callback`);
+      const clientId = import.meta.env.VITE_SHOPIFY_API_KEY;
+      const scopes = import.meta.env.VITE_SHOPIFY_SCOPES; // e.g., "read_orders,read_products"
+
+      window.location.href = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}`;
+    } else {
       console.error("❌ No shop found in /auth. Cannot continue.");
-      return;
     }
-
-    const redirectUrl = new URL(`https://${shop}/admin/oauth/authorize`);
-    redirectUrl.searchParams.set("client_id", import.meta.env.VITE_SHOPIFY_API_KEY!);
-    redirectUrl.searchParams.set("scope", import.meta.env.VITE_SHOPIFY_SCOPES!);
-    redirectUrl.searchParams.set("redirect_uri", `${window.location.origin}/functions/v1/shopify_oauth_callback`);
-
-    window.location.href = redirectUrl.toString();
   }, []);
 
   return (

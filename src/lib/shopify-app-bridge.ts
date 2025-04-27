@@ -1,44 +1,47 @@
+// File: src/lib/shopify-app-bridge.ts
+
 import createApp, { AppConfigV2 } from "@shopify/app-bridge";
 import { getSessionToken } from "@shopify/app-bridge-utils";
 
 /**
- * Initializes Shopify App Bridge securely inside embedded apps.
+ * Safely initializes Shopify App Bridge.
  */
 export function initializeShopifyAppBridge() {
   const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY;
-  const urlParams = new URLSearchParams(window.location.search);
-  const host = urlParams.get("host");
-  const shop = urlParams.get("shop");
+  const params = new URLSearchParams(window.location.search);
+  const host = params.get("host");
+  const shop = params.get("shop");
+  const embedded = params.get("embedded");
 
   if (!apiKey || !host) {
-    console.warn("⚠️ Missing host or apiKey. Trying to fix...");
-
-    if (shop) {
-      window.location.href = `/auth?shop=${encodeURIComponent(shop)}`;
+    console.warn("⚡ Missing host or apiKey. Trying to fix...");
+    if (embedded && shop) {
+      const baseUrl = window.location.origin;
+      window.location.href = `${baseUrl}/auth?shop=${encodeURIComponent(shop)}`;
     } else {
       console.error("❌ Cannot fix: missing shop too.");
     }
     return null;
   }
 
-  const appBridgeConfig: AppConfigV2 = {
+  const config: AppConfigV2 = {
     apiKey,
     host,
     forceRedirect: true,
   };
 
-  return createApp(appBridgeConfig);
+  return createApp(config);
 }
 
 /**
- * Fetches a fresh Shopify session token.
+ * Fetches Shopify session token.
  */
 export async function fetchSessionToken(app: ReturnType<typeof createApp>) {
   try {
     const token = await getSessionToken(app);
     return token;
   } catch (error) {
-    console.error("❌ Failed to fetch Shopify session token:", error);
+    console.error("❌ Failed to fetch session token:", error);
     return null;
   }
 }
